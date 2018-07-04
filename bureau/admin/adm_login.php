@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: adm_login.php,v 1.4 2005/04/01 17:13:10 benjamin Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,10 +15,14 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Benjamin Sonntag
- Purpose of file: Connect a super-user to another account
- ----------------------------------------------------------------------
 */
+
+/**
+ * Any ADMIN account can impersonate to any other account by using this page.
+ *
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 
 /*
@@ -36,7 +32,7 @@ require_once("../class/config.php");
  */
 
 $fields = array (
-        "id"                => array ("request", "integer", ""),
+        "id"                => array ("get", "integer", ""),
 );
 getFields($fields);
 
@@ -46,24 +42,17 @@ if ( empty($id) && isset($_COOKIE["oldid"]) && !empty($_COOKIE["oldid"])) {
   list($newuid,$passcheck)=explode("/",$_COOKIE["oldid"]);
   $newuid=intval($newuid); 
   if (!$newuid) {
-    $error=_("Your authentication information are incorrect");
+    $msg->raise("ERROR", "admin", _("Your authentication information are incorrect"));
     include("index.php");
     exit();
   }
   $admin->enabled=true;
   $r=$admin->get($newuid);
   if ($passcheck!=md5($r["pass"])) {
-    $error=_("Your authentication information are incorrect");
+    $msg->raise("INFO", "admin", _("Your authentication information are incorrect"));
     include("index.php");
     exit();
   }
-
-  if ($r['lastip'] != get_remote_ip() ) {
-    $error=_("Your IP is incorrect.");
-    include("index.php");
-    exit();
-  }
-  // FIXME we should add a peremption date on the cookie
 
   // Ok, so we remove the cookie : 
   setcookie('oldid','',0,'/');
@@ -71,7 +60,6 @@ if ( empty($id) && isset($_COOKIE["oldid"]) && !empty($_COOKIE["oldid"])) {
 
   // And we go back to the former administrator account : 
   if (!$mem->setid($newuid)) {
-    $error=$err->errstr();
     include("index.php");
     exit();
   }
@@ -83,26 +71,25 @@ if ( empty($id) && isset($_COOKIE["oldid"]) && !empty($_COOKIE["oldid"])) {
 
 //  * with a user id to go to (we check the current account is admin and is allowed to connect to this account) 
 if (!$admin->enabled) {
-  __("This page is restricted to authorized staff");
+  $msg->raise("ERROR", "admin", _("This page is restricted to authorized staff"));
+  echo $msg->msg_html_all();
   exit();
 }
 
 // Depending on subadmin_restriction, a subadmin can (or cannot) connect to account he didn't create
 $subadmin=variable_get("subadmin_restriction");
 if ($subadmin==0 && !$admin->checkcreator($id)) {
-  __("This page is restricted to authorized staff");
+  $msg->raise("ERROR", "admin", _("This page is restricted to authorized staff"));
+  echo $msg->msg_html_all();
   exit();
 }
 
-if (!$r=$admin->get($id)) {
-  $error=$err->errstr();
-} else {
+if ($r=$admin->get($id)) {
   $oldid=$cuid."/".md5($mem->user["pass"]);
   setcookie('oldid',$oldid,0,'/');
   $_COOKIE['oldid']=$oldid;
 
   if (!$mem->setid($id)) {
-    $error=$err->errstr();
     include("index.php");
     exit();
   }
@@ -117,9 +104,7 @@ include_once("head.php");
 ?>
 <h3><?php __("Member login"); ?></h3>
 <?php
+echo $msg->msg_html_all();
 
-if (isset($error) && $error) {
-  echo "<p class=\"alert alert-danger\">$error</p>";
-}
 include_once("foot.php"); 
 ?>

@@ -1,16 +1,41 @@
 <?php
+/*
+ ----------------------------------------------------------------------
+ LICENSE
+
+ This program is free software; you can redistribute it and/or
+ modify it under the terms of the GNU General Public License (GPL)
+ as published by the Free Software Foundation; either version 2
+ of the License, or (at your option) any later version.
+
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+
+ To read the license please visit http://www.gnu.org/copyleft/gpl.html
+ ----------------------------------------------------------------------
+*/
+
+/** 
+ * Display the quotas of one or some users
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/
+ */
 
 require_once("../class/config.php");
 
 $fields = array (
-	"mode"   => array ("get", "integer" ,0), 
-	"sd"     => array ("get", "integer" ,0), 
-	"usr"    => array ("get", "integer" ,0), 
+	"mode"   => array ("request", "integer" ,0), 
+	"sd"     => array ("request", "integer" ,0), 
+	"usr"    => array ("request", "integer" ,0), 
+	"order"  => array ("request", "integer" ,0),
 );
 getFields($fields);
 
 if (!$admin->enabled) {
-  __("This page is restricted to authorized staff");
+  $msg->raise("ERROR", "admin", _("This page is restricted to authorized staff"));
+  echo $msg->msg_html_all();
   exit();
 }
 
@@ -21,9 +46,7 @@ include_once ("head.php");
 <hr id="topbar"/>
 <br />
 <?php
-if (isset($error) && $error) {
-  echo "<p class=\"alert alert-warning\">$error</p>";
-}
+echo $msg->msg_html_all();
 ?>
 <p>
 <?php __("This page shows the space and service count of your AlternC server and each AlternC accounts.");
@@ -51,7 +74,7 @@ echo "<br /><br />"; printf(_("If you want to manage them, go to")."&nbsp;<a hre
 </p>
 
 <?php if ($mode == 4) {
-	// Mode : affichage des donn�es globales
+	// Mode : global display 
 
 	if ($cuid != 2000)
 	{
@@ -111,7 +134,7 @@ echo "<br /><br />"; printf(_("If you want to manage them, go to")."&nbsp;<a hre
         $tmptotaldb = $quota->get_size_db_sum_all();            // IN B
         $totaldb=$quota->get_size_unit($tmptotaldb);
 
-	$tmptotaltotal=($tmptotalweb*1024)+($tmptotallist*1024)+$tmptotalmail+($tmptotaldb/1024); // IN B
+	$tmptotaltotal=($tmptotalweb*1024)+($tmptotallist*1024)+$tmptotalmail+$tmptotaldb; // IN B
 	$totaltotal=$quota->get_size_unit($tmptotaltotal); 
 
         $dc = $dom->count_domains_all();
@@ -159,27 +182,43 @@ echo "<br /><br />"; printf(_("If you want to manage them, go to")."&nbsp;<a hre
 </div>
 </center>
 <?php } elseif ($usr==0) {
-  // Mode : affichage de tous les comptes
+  // Mode : display all accounts
+
+ function sortlink($txt,$asc,$desc) {
+   global $order,$mode,$sd,$usr;
+   if ($order==$asc) $neworder=$desc; else $neworder=$asc;
+   echo "<th";
+   if ($order==$asc) echo " class=\"headerSortUp\"";
+   if ($order==$desc) echo " class=\"headerSortDown\"";
+   echo ">";
+   echo "<a href=\"quotas_users.php?order=".$neworder."&mode=".$mode."&sd=".$sd."&usr=".$usr."\">";
+   echo $txt;
+   echo "</a>";
+   echo "</th>";
+ }
+
 ?>
 <center>
 
 <div>
 <table  class="tedit" width="100%">
 <thead>
-	    <tr><th rowspan="2"><?php __("Account"); ?></th><th colspan="3"><?php __("Count"); ?></th><th colspan="5"><?php __("Space"); ?></th></tr>
+		       <tr><th rowspan="2"><?php sortlink(_("Account"),0,1); ?></th><th colspan="3"><?php __("Count"); ?></th><th colspan="5"><?php __("Space"); ?></th></tr>
 <tr>
-  <th><?php __("Dom"); ?></th>
-  <th><?php __("Mails"); ?></th>
-  <th><?php __("Lists"); ?></th>
-  <th><?php __("Web");  ?></th>
-  <th><?php __("Mails"); ?></th>
-  <th><?php __("Lists"); ?></th>
-  <th><?php __("DB"); ?></th>
-  <th><?php __("Total"); ?></th>
+<?php sortlink(_("Dom"),2,3); ?>
+<?php sortlink(_("Mails"),4,5); ?>
+<?php sortlink(_("Lists"),6,7); ?>
+<?php sortlink(_("Web"),8,9);  ?>
+<?php sortlink(_("Mails"),10,11); ?>
+<?php sortlink(_("Lists"),12,13); ?>
+<?php sortlink(_("DB"),14,15); ?>
+<?php sortlink(_("Total"),16,17); ?>
 </tr>
 </thead>
 <tbody>
 <?php
+
+  $afields=array("login","domaincount","mailcount","mailmancount","websize","mailsize","mailmansize","dbsize","totalsize");
 
 if ($cuid != 2000)
 {
@@ -240,31 +279,31 @@ if ($cuid != 2000) {
     $membres_list = $admin->get_list(1);
 }
 
+
+
+// ------------------------------------------------------------
+// LOOP ON EACH MEMBER 
+$all=array();
 foreach ($membres_list as $c) {
+  
+  $one=$c;
 
-  echo "<tr><td>";
-
-  // On affiche le compte et ses domaines :
-  echo "<b><a href=\"quotas_users.php?mode=".$mode."&sd=".$sd."&usr=".$c["uid"]."\">".$c["login"]."</a></b><br />\n";
+  // We show account AND domains
   $domaines_list = $dom->enum_domains($c["uid"]);
   $dc=0; // Domain Count
   $ms=0; // Mail Space
   $mls=0;
+  $one["domains"]=array();
   foreach ($domaines_list as $d) {
-    if ($sd)     echo "&nbsp;&nbsp;&nbsp;-&nbsp;{$d}<br />\n";
     $dc++;
+    $one["domains"][]=$d;
     $mstmp = $quota->get_size_mail_sum_domain($d);
     $ms+=$mstmp;
     $mlstmp = $quota->get_size_mailman_sum_domain($d);
     $mls+=$mlstmp;
   }
-
-  $mailsize=$quota->get_size_unit($ms);
-
-  if($mls !=  0)
-    $mailmansize=$quota->get_size_unit($mls);
-  else
-    $mailmansize=$quota->get_size_unit($quota->get_size_mailman_sum_user($c["uid"]) * 1024);
+  $one["mailsize"]=$ms;
+  $one["mailmansize"]=$mls;
 
   // Mail Count
   $maildomains_list = $mail->enum_domains($c["uid"]);
@@ -273,37 +312,98 @@ foreach ($membres_list as $c) {
     $mc += $md['nb_mail'];
   }
 
+  $one["mailcount"]=$mc;
+  $one["domaincount"]=$dc;
+
   // Mailman List Count
   if (isset($mailman)) {
     $mlc = $mailman->count_ml_user($c["uid"]);
-    echo "</td><td>$dc</td><td>$mc</td><td>$mlc</td><td";
-    if ($mode!=2) echo " style=\"text-align: right\"";
-    echo ">";
+    $one["mailmancount"]=$mlc;
   }
 
   // Espace WEB
   $ws = $quota->get_size_web_sum_user($c["uid"]);
-  $webspace=$quota->get_size_unit($ws * 1024);
-	if (isset($totalweb) && $totalweb){
-		$pc=intval(100*$ws/$totalweb);
-	}
-	else{
-		$pc=0;
-	}
+  $one["websize"]=$ws;
+  // Espace Mail :
 
+  // Espace DB :
+$ds = $quota->get_size_db_sum_user($c["login"]);
+$one["dbsize"]=$ds;
+
+$ts=$ds/1024+$ws+$ms/1024+$mls;                  // In KB
+$one["totalsize"]=$ts;
+$all[]=$one;
+}
+
+// SORT this $all array
+$asc=(($order%2)==0);
+$fie=$afields[intval($order/2)];
+function mysort($a,$b) {
+  global $fie,$asc;
+  if ($asc) {
+    if ($a[$fie]<$b[$fie]) return -1;
+    if ($a[$fie]>$b[$fie]) return 1;
+    return 0;
+  } else {
+    if ($a[$fie]<$b[$fie]) return 1;
+    if ($a[$fie]>$b[$fie]) return -1;
+    return 0;
+  }
+
+}
+usort($all,"mysort");
+
+
+// ------------------------------------------------------------
+// LOOP ON EACH MEMBER 
+foreach ($all as $c) {
+
+  echo "<tr><td>";
+
+  // We show all accounts and domains
+  echo "<b><a href=\"quotas_users.php?mode=".$mode."&sd=".$sd."&usr=".$c["uid"]."\">".$c["login"]."</a></b><br />\n";
+  $domaines_list = $dom->enum_domains($c["uid"]);
+  $dc=0; // Domain Count
+  $ms=0; // Mail Space
+  $mls=0;
+  foreach ($c["domains"] as $d) {
+    if ($sd)     echo "&nbsp;&nbsp;&nbsp;-&nbsp;{$d}<br />\n";
+  }
+  
+  $ms=$c["mailsize"];
+  $mls=$c["mailmansize"];
+
+  $mailsize=$quota->get_size_unit($ms);
+  $mailmansize=$quota->get_size_unit($mls * 1024);
+
+  // WEB space quota
+  $ws = $c["websize"];
+  $webspace=$quota->get_size_unit($ws * 1024);
+  if (isset($totalweb) && $totalweb){
+    $pc=intval(100*$ws/$totalweb);
+  } else {
+    $pc=0;
+  }
+  $dc=$c["domaincount"];
+  $mc=$c["mailcount"];
+  $mlc=$c["mailmancount"];
+
+  echo "</td><td>$dc</td><td>$mc</td><td>$mlc</td><td";                                                           
+  if ($mode!=2) echo " style=\"text-align: right\"";                                                              
+  echo ">";
+  
 if ($mode==0) {
   echo sprintf("%.1f", $webspace['size'])."&nbsp;".$webspace['unit'];
 } elseif ($mode==1) {
   echo sprintf("%.1f",$pc)."&nbsp;%";
 } else {
-  #echo "<img src=\"images/hippo_bleue.gif\" style=\"width: ".(1*$pc)."px; height: 16px\" alt=\"".$pc."%\" title=\"".$pc."\"/>";
   $quota->quota_displaybar($pc);
 }
   echo "</td><td";
   if ($mode!=2) echo " style=\"text-align: right\"";
   echo ">";
 
-  // Espace Mail :
+  // Mail space quota
 
 if ($totalmail)
 	$pc=intval(100*$ms/$totalmail);
@@ -315,7 +415,6 @@ if ($mode==0) {
 } elseif ($mode==1) {
   echo sprintf("%.1f",$pc)."&nbsp;%";
 } else {
-  #echo "<img src=\"images/hippo_bleue.gif\" style=\"width: ".(1*$pc)."px; height: 16px\" alt=\"".$pc."%\" title=\"".$pc."%\"/>";
   $quota->quota_displaybar($pc);
 }
 
@@ -323,7 +422,7 @@ if ($mode==0) {
   if ($mode!=2) echo " style=\"text-align: right\"";
   echo ">";
 
-  // Espace Mailman :
+  // Mailman space quota
 if ($totallist)
 	$pc=intval(100*$mls/$totallist);
 else
@@ -334,7 +433,6 @@ if ($mode==0) {
 } elseif ($mode==1) {
   echo sprintf("%.1f",$pc)."&nbsp;%";
 } else {
-  #echo "<img src=\"images/hippo_bleue.gif\" style=\"width: ".(1*$pc)."px; height: 16px\" alt=\"".$pc."%\" title=\"".$pc."%\"/>";
   $quota->quota_displaybar($pc);
 }
 
@@ -342,8 +440,8 @@ echo "</td><td";
 if ($mode!=2) echo " style=\"text-align: right\"";
 echo ">";
 
-// Espace DB :
-$ds = $quota->get_size_db_sum_user($c["login"]);
+// MySQL db space
+$ds = $c["dbsize"];
 $dbsize=$quota->get_size_unit($ds);
 
 if ($totaldb)
@@ -356,15 +454,15 @@ if ($mode==0) {
 } elseif ($mode==1) {
 	echo sprintf("%.1f",$pc)."&nbsp;%";
 } else {
-	#echo "<img src=\"images/hippo_bleue.gif\" style=\"width: ".(1*$pc)."px; height: 16px\" alt=\"".$pc."%\" title=\"".$pc."%\"/>";
-        $quota->quota_displaybar($pc);
+    $quota->quota_displaybar($pc);
 }
 
 echo "</td><td";
 if ($mode!=2) echo " style=\"text-align: right\"";
 echo ">";
 
-$ts=$ds/1024+$ws+$ms/1024+$mls;                  // In KB
+// Total space 
+$ts=$c["totalsize"];
 $totalsize=$quota->get_size_unit($ts * 1024);
 if ($mode==0) {
   echo sprintf("%.1f", $totalsize['size'])."&nbsp;".$totalsize['unit'];
@@ -376,7 +474,6 @@ if ($mode==0) {
   } else {
     $pc=0;
   }
-	#echo "<img src=\"images/hippo_bleue.gif\" style=\"width: ".(1*$pc)."px; height: 16px\" alt=\"".$pc."%\" title=\"".$pc."%\"/>";
 	$quota->quota_displaybar($pc);
 }
 
@@ -395,7 +492,7 @@ echo "</tr>";
 </div>
 </center>
 <?php
-    } else { // Mode affichage d'UN seul compte
+    } else { // Display only ONE accoutn
 
     $oneuser_ok = false;
 	if ($cuid != 2000) {
@@ -411,11 +508,11 @@ echo "</tr>";
         }
 	}
 
-    if ($oneuser_ok) {  # quotas_oneuser.php will used prefilled $c
+    if ($oneuser_ok) {  // quotas_oneuser.php will used prefilled $c
 	  define("QUOTASONE","1");
 	  require_once("quotas_oneuser.php");
     }
 
-    } // endif un seul compte
+    } // endif only one account
 ?>
 <?php include_once("foot.php"); ?>

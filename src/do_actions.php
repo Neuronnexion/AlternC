@@ -97,7 +97,7 @@ function mail_it(){
  * 
  * @param type $command the command
  * @param type $parameters of the command (they are going to be protected)
- * @return array('output'=>'output of exec', 'return_var'=>'returned integer of exec') 
+ * @return array('output'=>'output of exec', 'return_val'=>'returned integer of exec') 
  */
 function execute_cmd($command, $parameters=array()) {
   $cmd_line = "$command ";
@@ -112,9 +112,27 @@ function execute_cmd($command, $parameters=array()) {
   }
   $cmd_line.= " 2>&1";
   exec($cmd_line, $output, $code);
-  return array('executed' => $cmd_line, 'output'=>$output, 'return_var'=>$code);
+  return array('executed' => $cmd_line, 'output'=>$output, 'return_val'=>$code);
 }
 
+/** Check if a file or folder is in the list of allowed 
+ *  path (after dereferencing all ../ and symlinks
+ * @param $path string the path to check against 
+ * @return string the dereferenced path, or FALSE if the path is NOT allowed (/var/www/alternc /var/mail/alternc) 
+ */
+function my_realpath($path) {
+    global $L_ALTERNC_HTML, $L_ALTERNC_MAIL;
+    // add here any allowed path: 
+    $allowed=array(realpath($L_ALTERNC_HTML)."/", realpath($L_ALTERNC_MAIL)."/");
+    $path=realpath($path);
+    foreach($allowed as $one) {
+        // the path must be BELOW each allowed folder. forbid anything 
+        if (strlen($path)>strlen($one) && substr($path,0,strlen($one))==$one) {
+            return $path;
+        }
+    }
+    return false;
+}
 
 // Check if script isn't already running
 if (file_exists(ALTERNC_DO_ACTION_LOCK) !== false){
@@ -190,29 +208,38 @@ while ($rr=$action->get_action()){
   switch ($r["type"]){
     case "FIX_USER" :
       // Create the directory and make parent directories as needed
-      #@exec("$FIXPERM -u ".$params["uid"]." 2>&1", $trash, $code);
       $returned = execute_cmd("$FIXPERM -u", $params["uid"]);
       break;
     case "CHMOD" :
-        $filename=$params["file"];
+        $filename=my_realpath($params["filename"]);
+        if ($filename===false) {
+            $errorsList=array("Fail: path not allowed");
+            break;
+        }
         $perms=$params["perms"];
         // Checks the file or directory exists
         if( !is_dir($filename) && ! is_file($filename)){
-            $errorsList=array("Fail: cannot create ".$params["dst"]);
+            $errorsList=array("Fail: cannot retrieve CHMOD filename" );
         }
         // Checks the perms are correct
         else if ( !is_int( $perms)){
-            $errorsList=array("Fail: cannot create ".$params["dst"]);
+            $errorsList=array("Fail: Incorrect perms : $perms");
         }
         // Attempts to change the rights on the file or directory
         else if( !chmod($filename, $perms)) {
-            $errorsList=array("Fail: cannot create ".$params["dst"]);
+            $errorsList=array("Fail: cannot change perms ($perms) on filename ($filename)");
         }
         
       break;
     case "CREATE_FILE" :
+        $dirname=my_realpath(dirname($params["filename"]));
+        $filename=basename($params["filename"]);
+        if ($dirname===false) {
+            $errorsList=array("Fail: path not allowed");
+            break;
+        }
+        $params["file"]=$dirname.DIRECTORY_SEPARATOR.$filename;
       if(!file_exists($params["file"])) {
-        #@exec("$SU touch ".$params["file"]." 2>&1 ; echo '".$params["content"]."' > '".$params["file"]."' 2>&1", $output);
         if ( file_put_contents($params["file"], $params["content"]) === false ) {
           $errorsList=array("Fail: can't write into file ".$params["file"]);
         } else {
@@ -225,18 +252,41 @@ while ($rr=$action->get_action()){
       }
       break;
     case "CREATE_DIR" :
-      // Create the directory and make parent directories as needed
-      #@exec("$SU mkdir -p ".$params["dir"]." 2>&1",$output);
-      $returned = execute_cmd("$SU mkdir", array('-p', $params["dir"]));
+        $dirname=my_realpath(dirname($params["dir"]));
+        $filename=basename($params["dir"]);
+        if ($dirname===false) {
+            $errorsList=array("Fail: path not allowed");
+            break;
+        }
+        $params["dir"]=$dirname.DIRECTORY_SEPARATOR.$filename;
+        // Create the directory and make parent directories as needed
+        $returned = execute_cmd("$SU mkdir", array('-p', $params["dir"]));
       break;
     case "DELETE" :
-      // Delete file/directory and its contents recursively
-      #@exec("$SU rm -rf ".$params["dir"]." 2>&1", $output);
-      $returned = execute_cmd("$SU rm", array('-rf', $params["dir"]));
+        $dirname=my_realpath($params["dir"]);
+        if ($dirname===false) {
+            $errorsList=array("Fail: path not allowed");
+            break;
+        }
+        // Delete file/directory and its contents recursively
+        $returned = execute_cmd("$SU rm", array('-rf', $dirname));
       break;
     case "MOVE" :
       // If destination dir does not exists, create it
-      if(!is_dir($params["dst"]))
+        $dirname=my_realpath(dirname($params["dst"]));
+        $filename=basename($params["dst"]);
+        if ($dirname===false) {
+            $errorsList=array("Fail: path not allowed");
+            break;
+        }
+        $params["dst"]=$dirname.DIRECTORY_SEPARATOR.$filename;
+        $params["src"]=my_realpath($params["src"]);
+        if ($params["src"]===false) {
+            $errorsList=array("Fail: path not allowed");
+            break;
+        }
+
+      if (!is_dir($params["dst"]))
         if ( @mkdir($params["dst"], 0777, true)) {
           if ( @chown($params["dst"], $r["user"]) ) {
             $returned = execute_cmd("$SU mv -f", array($params["src"], $params["dst"])); 
@@ -247,13 +297,22 @@ while ($rr=$action->get_action()){
         
       break;
     case "FIX_DIR" :
+        $params["dir"]=my_realpath($params["dir"]);
+        if ($params["dir"]===false) {
+            $errorsList=array("Fail: path not allowed");
+            break;
+        }
       $returned = execute_cmd($FIXPERM, array('-d', $params["dir"]));
       if($returned['return_val'] != 0) {
             $errorsList=array("Fixperms.sh failed, returned error code : ".$returned['return_val']);
       }
       break;
     case "FIX_FILE" :
-      #@exec("$FIXPERM -f ".$params["file"]." 2>&1", $trash, $code);
+        $params["file"]=my_realpath($params["file"]);
+        if ($params["file"]===false) {
+            $errorsList=array("Fail: path not allowed");
+            break;
+        }
       $returned = execute_cmd($FIXPERM, array('-f', $params["file"]));
       if($returned['return_val'] != 0){
           $errorsList=array("Fixperms.sh failed, returned error code : ".$returned['return_val']);
@@ -273,7 +332,12 @@ while ($rr=$action->get_action()){
 
 // If an error occured, notify it to the admin
 if(count($errorsList)) {
-  mail_it(); 
+  mail_it();
+if( (php_sapi_name() === 'cli') ){
+   echo _("errors were met");
+   var_dump($errorsList);
+
+} 
 }
 
 // Unlock the script

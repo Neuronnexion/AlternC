@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: piwik_user_dodel.php,v 1.2 2003/06/10 06:45:16 root Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,30 +15,32 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: François Serman
- Purpose of file: Delete piwik accounts
- ----------------------------------------------------------------------
 */
+
+/**
+ * delete piwik users
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/
+ */
 require_once("../class/config.php");
 
 $fields = array (
   "confirm_del"    	=> array ("post", "string", ""),
-  "login"    		=> array ("request", "string", ""),
+  "login"    		=> array ("post", "string", ""),
 );
 getFields($fields);
 
 if (empty($login)) {
-  $error=_("Missing login parameters");
+  $msg->raise("ERROR", "piwik", _("Missing login parameters"));
   include('piwik_userlist.php'); 
   exit;
 } 
 
 if(!empty($confirm_del)) {
-  if (! $piwik->user_delete($login) ) {
-    $error=$err->errstr();
-  } else {
-    include_once('head.php');
-    printf("Utilisateur %s supprimé avec succès\n", $login);
+  // does this piwik acount still have websites ? can we delete it then ?
+  if ($piwik->user_has_sites()) {
+    $msg->raise("ALERT", "piwik", _("To be able to delete the last user account, you must first remove all the piwik sites"));
+  } else if ($piwik->user_delete($login) ) {
+    $msg->raise("INFO", "piwik", _("Account %s has been successfully deleted"), $login);
   }
 
   include('piwik_userlist.php'); 
@@ -64,7 +58,8 @@ include_once('head.php');
 <br />
 
   <form method="post" action="piwik_user_dodel.php" name="main" id="main">
-    <input type="hidden" name="login"  value="<?php echo $login;?>" />
+  <?php csrf_get(); ?>
+    <input type="hidden" name="login"  value="<?php ehe($login);?>" />
     <input type="submit" class="inb" name="confirm_del" value="<?php __("Delete")?>" />
     <input type="button" class="inb" name="cancel" value="<?php __("Cancel"); ?>" onclick="document.location='piwik_userlist.php'" />
   </form>

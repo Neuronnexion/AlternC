@@ -1,13 +1,14 @@
 Source: alternc
 Section: admin
 Priority: optional
-Maintainer: Benjamin Sonntag <benjamin@alternc.org>
+Maintainer: Benjamin Sonntag <benjamin@sonntag.fr>
 Build-Depends-Indep: perl
+		   , help2man
                    , findutils (>= 4.1.7)
                    , gettext (>= 0.10.40-5)
-Build-Depends: debhelper (>= 8)
+Build-Depends: debhelper (>= 9)
              , po-debconf
-Standards-Version: 3.9.4
+Standards-Version: 3.9.8
 
 Package: alternc
 Architecture: all
@@ -15,10 +16,16 @@ Pre-depends: debconf (>= 0.5.00) | debconf-2.0
            , bash (>= 4)
            , acl
 Depends: debianutils (>= 1.13.1)
-       , apache2-mpm-itk
-       , libapache2-mod-php5
-       , php5-mysql
+       , apache2-mpm-itk | libapache2-mpm-itk
+       , libapache2-mod-php5 | libapache2-mod-php7.0
+       , php5-mysql | php7.0-mysql
        , phpmyadmin
+       , ssl-cert
+       , libjs-prettify
+       , libjs-jquery
+       , libjs-jquery-tablesorter       
+       , libjs-jquery-ui
+       , libjs-jquery-ui-theme-redmond
        , postfix
        , proftpd-mod-mysql
        , proftpd-basic
@@ -32,38 +39,45 @@ Depends: debianutils (>= 1.13.1)
        , wwwconfig-common
        , sasl2-bin
        , libsasl2-modules
-       , php5-cli
+       , php-cli
        , lockfile-progs (>= 0.1.9)
        , gettext (>= 0.10.40-5)
        , sudo
        , adduser
-       , mysql-client
        , dnsutils
-       , dovecot-common (>=1:2.1.7)
-       , dovecot-imapd
-       , dovecot-pop3d
+       , dovecot-core (>=1:2.1.7)
+       , dovecot-imapd (>=1:2.1.7)
+       , dovecot-pop3d (>=1:2.1.7)
        , dovecot-mysql
        , vlogger
        , mailutils | mailx
+       , zip
        , incron
        , cron
        , opendkim
        , opendkim-tools
        , dovecot-sieve
        , dovecot-managesieved
+       , default-mysql-client
+       , php5-curl | php7.0-curl
+       , quota
+       , pwgen
        , ${misc:Depends}
-Recommends: mysql-server(>= 5.0)
+Recommends: default-mysql-server
           , ntp
-          , quota
           , unzip
           , bzip2
+	  , alternc-certificate-provider-letsencrypt
 Conflicts: alternc-admintools
         , alternc-awstats (<< 1.0)
         , alternc-webalizer (<= 0.9.4)
         , alternc-mailman (<< 2.0)
         , courier-authlib
+        , alternc-ssl
 Provides: alternc-admintools
+        , alternc-ssl
 Replaces: alternc-admintools
+        , alternc-ssl
 Suggests: alternc-awstats
        , alternc-mailman
        , alternc-changepass
@@ -72,11 +86,10 @@ Suggests: alternc-awstats
        , spamassassin
        , pop-before-smtp
        , magpierss
-       , zip
        , ncompress
        , alternc-squirrelmail
        , alternc-roundcube
-Description: Hosting software managment suite for Debian
+Description: Hosting software management suite for Debian
  AlternC is a mutualized hosting software manager for Linux.
  It allows you to manage your websites, domains, ftp, emails, aliases,
  web statistics, mailing-lists, jabber accounts, etc.
@@ -84,26 +97,23 @@ Description: Hosting software managment suite for Debian
  AlternC is mainly a PHP based administration interface and some conf files
  for the software used by it. 
  .
- More information at http://www.alternc.com/
-Homepage: http://www.alternc.com/
-Description-fr.UTF-8: Suite logicielle d'hébergement mutualisé pour Debian
- AlternC est un logiciel d'hébergement mutualisé pour serveur Linux.
- Il permet de gérer les sites web, domaines, ftp, emails, alias,
- statistiques web, listes de discussions, comptes jabber, etc.
- .
- AlternC est essentiellement une interface d'administration en PHP et
- quelques fichiers de configuration pour les logiciels qu'il utilise.
- .
- Pour plus d'informations, consultez http://www.alternc.com/
+ More information at https://alternc.com/
+Homepage: https://alternc.com/
 
 Package: alternc-slave
 Architecture: all
 Pre-depends: debconf (>= 0.5.00) | debconf-2.0, acl
 Depends: debianutils (>= 1.13.1)
-         , apache2-mpm-itk
-         , libapache2-mod-php5
-         , php5-mysql
+         , apache2-mpm-itk | libapache2-mpm-itk
+         , libapache2-mod-php5 | libapache2-mod-php7.0
+         , php5-mysql | php7.0-mysql
          , phpmyadmin
+         , ssl-cert
+         , libjs-prettify
+         , libjs-jquery
+         , libjs-jquery-tablesorter       
+         , libjs-jquery-ui
+         , libjs-jquery-ui-theme-redmond
          , postfix
          , proftpd-mod-mysql
          , proftpd-basic
@@ -119,15 +129,14 @@ Depends: debianutils (>= 1.13.1)
          , wwwconfig-common
          , sasl2-bin
          , libsasl2-modules
-         , php5-cli
+         , php-cli
          , lockfile-progs (>= 0.1.9)
          , gettext (>= 0.10.40-5)
          , adduser
-         , mysql-client
          , sudo
-         , dovecot-common (>= 1:2.1.7)
-         , dovecot-imapd
-         , dovecot-pop3d
+         , dovecot-core (>=1:2.1.7)
+         , dovecot-imapd (>=1:2.1.7)
+         , dovecot-pop3d (>=1:2.1.7)
          , dovecot-mysql
          , vlogger
          , mailutils | mailx
@@ -135,12 +144,14 @@ Depends: debianutils (>= 1.13.1)
          , cron
          , opendkim
          , opendkim-tools
-         , dovecot-managesieved
          , dovecot-sieve
-         , dovecot-mysql
+         , dovecot-managesieved
+         , default-mysql-client
+         , php5-curl
          , ${misc:Depends}
 Recommends:
          quota
+	  , alternc-certificate-provider-letsencrypt
 Conflicts: alternc-admintools
          , alternc-awstats (<= 0.3.2)
          , alternc-webalizer (<= 0.9.4)
@@ -158,7 +169,7 @@ Suggests: alternc-awstats
          , zip
          , ncompress
          , bzip2
-Description: Hosting software managment suite for Debian
+Description: Hosting software management suite for Debian
  AlternC is a mutualized hosting software manager for Linux.
  It allows you to manage your websites, domains, ftp, emails, aliases,
  web statistics, mailing-lists, jabber accounts, etc.
@@ -169,21 +180,8 @@ Description: Hosting software managment suite for Debian
  This package is designed for frontend nodes in a load balancing setup, where
  the AlternC directory is not touched and managed over NFS.
  . 
- More information at http://www.alternc.com/
-Homepage: http://www.alternc.com/
-Description-fr.UTF-8: Suite logicielle d'hébergement mutualisé pour Debian
- AlternC est un logiciel d'hébergement mutualisé pour serveur Linux.
- Il permet de gérer les sites web, domaines, ftp, emails, alias,
- statistiques web, listes de discussions, comptes jabber, etc.
- .
- AlternC est essentiellement une interface d'administration en PHP et
- quelques fichiers de configuration pour les logiciels qu'il utilise.
- .
- Ce paquet permet de construire un noeud frontal dans une configuration avec
- répartiteur de charge, ou le dossier /var/alternc n'est pas modifié et géré
- à travers NFS.
- .
- Pour plus d'informations, consultez http://www.alternc.com/
+ More information at https://alternc.com/
+Homepage: https://alternc.com/
 
 Package: alternc-squirrelmail
 Architecture: all
@@ -208,19 +206,8 @@ Description: Squirrelmail-Webmail plugin and configuration for AlternC
  filtering, the password changing through MySQL, and the automatic
  creation of proper profile with the right address and language.
  .
- More information at http://www.alternc.com/
-Homepage: http://www.alternc.com/
-Description-fr.UTF-8: Webmail Squirrelmail pour AlternC
- AlternC est un logiciel d'hébergement mutualisé pour serveur Linux.
- Il permet de gérer les sites web, domaines, ftp, emails, alias,
- statistiques web, listes de discussions, comptes jabber, etc.
- .
- Cette extension d'AlternC installe et configure le webmail Squirrelmail.
- Il configure aussi Avelsieve pour permettre l'accès au filtrage du courrier
- côté serveur, ainsi que le changement de mot de passe via MySQL et la création
- automatique des profiles avec la bonne adresse et la bonne langue.
- .
- Pour plus d'informations, consultez http://www.alternc.com/
+ More information at https://alternc.com/
+Homepage: https://alternc.com/
 
 Package: alternc-roundcube
 Architecture: all
@@ -245,19 +232,8 @@ Description: Roundcube-Webmail plugin and configuration for AlternC
  filtering, the password changing through MySQL, and the automatic
  creation of proper profile with the right address and language.
  .
- More information at http://www.alternc.com/
-Homepage: http://www.alternc.com/
-Description-fr.UTF-8: Webmail Roundcube pour AlternC
- AlternC est un logiciel d'hébergement mutualisé pour serveur Linux.
- Il permet de gérer les sites web, domaines, ftp, emails, alias,
- statistiques web, listes de discussions, comptes jabber, etc.
- .
- Cette extension d'AlternC installe et configure le webmail Roundcube.
- Il configure aussi sieve pour permettre l'accès au filtrage du courrier
- côté serveur, ainsi que le changement de mot de passe via MySQL et la création
- automatique des profiles avec la bonne adresse et la bonne langue.
- .
- Pour plus d'informations, consultez http://www.alternc.com/
+ More information at https://alternc.com/
+Homepage: https://alternc.com/
 
 Package: alternc-awstats
 Priority: optional
@@ -266,7 +242,7 @@ Architecture: all
 Pre-depends: debconf
 Depends: alternc (>= 3.0~rc1)
        , awstats (>=6.1-1)
-       , php5-cli
+       , php-cli
        , ${misc:Depends}
 Suggests: apachemerge
 Description: Awstats statistics module for AlternC
@@ -277,37 +253,23 @@ Description: Awstats statistics module for AlternC
  This package is an optional module that adds awstats statistics
  to the virtual desktop.
  .
- More information on http://www.alternc.com/.
+ More information on https://alternc.com/.
 
-Package: alternc-upnp
+Package: alternc-api
 Architecture: all
 Pre-depends: debconf (>= 0.5.00) | debconf-2.0
 Depends: debianutils (>= 1.13.1)
-       , alternc (>= 3.0~rc1)
-       , miniupnpc
-       , php5-cli
+       , alternc (>= 3.0)
        , ${misc:Depends}
-Description: UPnP client for AlternC 
+Conflicts: alternc (<< 3.0)
+Description: Rest or get/post API for AlternC
  AlternC is a mutualized hosting software manager for Linux.
  It allows you to manage your websites, domains, ftp, emails, aliases,
  web statistics, mailing-lists, jabber accounts, etc.
  .
- This extension to AlternC is installing a UPnP IGD client and make it so
- that your router required tcp and udp port are forwarded to AlternC.
- You need that only if your AlternC's server is behind a NAT router.
+ This extension to AlternC is installing and configuring properly the
+ GET/POST/REST API. You can then use https://yourpanel/api/ as an endpoint
+ to launch remotely any functions of the hosting control panel.
  .
- More information at http://www.alternc.com/
-Homepage: http://www.alternc.com/
-Description-fr.UTF-8: Client UPnP pour AlternC
- AlternC est un logiciel d'hébergement mutualisé pour serveur Linux.
- Il permet de gérer les sites web, domaines, ftp, emails, alias,
- statistiques web, listes de discussions, comptes jabber, etc.
- .
- Cette extension d'AlternC installe un client UPnP IGD et fait de telle
- sorte que les ports udp et tcp nécessaire au fonctionnement de votre
- serveur sous AlternC soient transmis depuis votre routeur.
- Vous n'avez besoin de cette extension que si votre serveur AlternC est
- situé derrière un routeur NAT.
- .
- Pour plus d'informations, consultez http://www.alternc.com/
-
+ More information at https://alternc.com/
+Homepage: https://alternc.com/

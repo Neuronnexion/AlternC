@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: mem_cm2.php,v 1.5 2004/11/29 17:27:04 anonymous Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,22 +15,25 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file:  Benjamin Sonntag
- Purpose of file: Change the email of a member step 3.
- ----------------------------------------------------------------------
 */
+
+/**
+ * Change the email of an account, STEP 3
+ *
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/
+ */
 
 require_once("../class/config_nochk.php");
 
 $fields = array (
-	"usr" => array ("request", "integer", 0),
-	"cookie" => array ("request", "string", ""),
-	"cle" => array("request","string",""),
+	"usr" => array ("post", "integer", 0),
+	"cookie" => array ("post", "string", ""),
+	"cle" => array("post","string",""),
 );
 getFields($fields);
 
-if (!$mem->ChangeMail2($cookie,$cle,$usr)) {
-	$error=$err->errstr();
+if ($mem->ChangeMail2($cookie,$cle,$usr)) {
+	$msg->raise("INFO", "mem", _("The mailbox has been successfully changed."));
 }
 
 include_once("head.php");
@@ -46,14 +41,9 @@ include_once("head.php");
 ?>
 <h3><?php __("Change the email of the account"); ?></h3>
 <?php
-if (isset($error) && $error) {
-		echo "<p class=\"alert alert-danger\">$error</p>";
-		include_once("foot.php");
-		exit();
-	}
+echo $msg->msg_html_all();
 
-__("The mailbox has been successfully changed.");
+echo "<p><span class='ina'><a href='mem_param.php'>"._("Click here to continue")."</a></span></p>";
 
 include_once("foot.php");
-
 ?>

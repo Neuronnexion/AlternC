@@ -45,11 +45,11 @@
 #
 # Those values are used to set the username/passwords...
 
-# The grant all is the most important right needed in this script.
-echo "Granting users..."
-
 MYSQL_CONFIG="/etc/alternc/my.cnf"
 MYSQL_MAIL_CONFIG="/etc/alternc/my_mail.cnf"
+
+# The grant all is the most important right needed in this script.
+echo "Granting users..."
 
 . /etc/alternc/local.sh
 # the purpose of this "grant" is to make sure that the generated my.cnf works
@@ -57,6 +57,7 @@ MYSQL_MAIL_CONFIG="/etc/alternc/my_mail.cnf"
 grant="GRANT ALL ON *.* TO '$user'@'${MYSQL_CLIENT}' IDENTIFIED BY '$password' WITH GRANT OPTION;
 CREATE DATABASE IF NOT EXISTS $database; "
 grant_mail="GRANT ALL ON $database.dovecot_view TO '$alternc_mail_user'@'${MYSQL_CLIENT}' IDENTIFIED BY '$alternc_mail_password';"
+grant_mail=$grant_mail"GRANT ALL ON $database.dovecot_quota TO '$alternc_mail_user'@'${MYSQL_CLIENT}' IDENTIFIED BY '$alternc_mail_password';"
 grant_mail=$grant_mail"GRANT SELECT ON $database.* TO '$alternc_mail_user'@'${MYSQL_CLIENT}' IDENTIFIED BY '$alternc_mail_password';"
 
 
@@ -206,7 +207,7 @@ echo "Checking for MySQL connectivity"
 $mysql -e "SHOW TABLES" >/dev/null && echo "MYSQL.SH OK!" || echo "MYSQL.SH FAILED: database user setup failed"
 # Final mysql setup: db schema
 echo "installing AlternC schema in $database..."
-$mysql < /usr/share/alternc/install/mysql.sql || echo cannot load database schema
+$mysql < /usr/share/alternc/install/mysql.sql || echo "Error loading database schema, continuing..."
 $mysql <<EOF
 $grant_mail
 EOF

@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: sql_users_rights.php,v 1.8 2006/02/16 16:26:28 nahuel Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,10 +15,14 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Nahuel ANGELINETTI
- Purpose of file: Manage the MySQL users of a member
- ----------------------------------------------------------------------
 */
+
+/**
+ * Manage MySQL users password
+ *
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/
+ */
+
 require_once("../class/config.php");
 include_once("head.php");
 
@@ -40,28 +36,27 @@ getFields($fields);
 <br />
 <?php
 $r=$mysql->get_user_dblist($id);
-if (!$r) {
-  $error=$err->errstr();
-}
 
-if (! empty($error) ) {
-  echo "<p class=\"alert alert-danger\">$error</p>";
-  require_once('foot.php');
-  die();
-}
-
+$c=$admin->listPasswordPolicies();
+$passwd_classcount = $c['mysql']['classcount'];
 ?>
 
-<form method="post" action="sql_users_dopassword.php">
-<input type="hidden" name="id" value="<?php echo $id; ?>" />
+<form method="post" action="sql_users_dopassword.php" autocomplete="off">
+  <?php csrf_get(); ?>
+<input type="hidden" name="id" value="<?php ehe($id); ?>" />
+
+<!-- honeypot fields -->
+<input type="text" style="display: none" id="fakeUsername" name="fakeUsername" value="" />
+<input type="password" style="display: none" id="fakePassword" name="fakePassword" value="" />
+
 <table cellspacing="0" cellpadding="4" class="tedit">
   <tr>
     <th><label for="password"><?php __("Password"); ?></label></th>
-    <td><input type="password" class="int" name="password" id="password" value="" size="20" maxlength="64" /><?php display_div_generate_password(DEFAULT_PASS_SIZE,"#password","#passwordconf"); ?></td>
+    <td><input type="password" class="int" autocomplete="off" name="password" id="password" value="" size="20" maxlength="64" /><?php display_div_generate_password(DEFAULT_PASS_SIZE,"#password","#passwordconf",$passwd_classcount); ?></td>
   </tr>
   <tr>
     <th><label for="passwordconf"><?php __("Confirm password"); ?></label></th>
-    <td><input type="password" class="int" name="passwordconf" id="passwordconf" value="" size="20" maxlength="64" /></td>
+    <td><input type="password" class="int" autocomplete="off" name="passwordconf" id="passwordconf" value="" size="20" maxlength="64" /></td>
   </tr>
 </table>
 <br/>

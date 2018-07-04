@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: dom_subedit.php,v 1.3 2003/08/13 23:01:45 root Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,25 +15,29 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file:
- Purpose of file:
- ----------------------------------------------------------------------
 */
+
+/**
+ * Form to edit subdomains informations
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 include_once("head.php");
 
 
 $fields = array (
-	"sub_domain_id"    => array ("request", "integer", ""),
+	"sub_domain_id"    => array ("request", "integer", 0),
 );
 getFields($fields);
 
 $dom->lock();
 
+$r=true;
 if (!isset($noread) || !$noread) {
   if (!$r=$dom->get_sub_domain_all($sub_domain_id)) {
-    $error=$err->errstr();
-    echo "<p class=\"alert alert-danger\">$error</p>";
+    echo $msg->msg_html_all();
     include_once('foot.php');
     die();
   }
@@ -55,21 +51,24 @@ if (!$r) {
 
 $dt=$dom->domains_type_lst();
 if (!$isinvited && $dt[strtolower($r['type'])]["enable"] != "ALL" ) {
-  __("This page is restricted to authorized staff");
+  $msg->raise("ERROR", "dom", _("This page is restricted to authorized staff"));
+  include("dom_edit.php");
   exit();
 }
 
 $domroot=$dom->get_domain_all($r['domain']);
+$dom->unlock();
+
+if ($msg->has_msgs("ERROR")) {
+  include_once("dom_edit.php");
+  exit();
+} 
 
 echo "<h3>";
 __("Editing subdomain");
 echo " http://"; ecif($r['name'],$r['name']."."); echo $r['domain']."</h3>";
-if (isset($error) && $error) {
-  echo "<p class=\"alert alert-danger\">$error</p>";
-  include_once("foot.php");
-  exit();
-} 
-$dom->unlock();
+
+echo $msg->msg_html_all();
 ?>
 
 <hr id="topbar"/>

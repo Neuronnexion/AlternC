@@ -45,7 +45,7 @@ class m_roundcube {
 	if (count($expl)>=2) {
 	  list($host,$dompart)=$expl;
 	  // We search for a 'squirrelmail' subdomain in that domain
-	  $db->query("SELECT * FROM sub_domaines s WHERE s.domaine='".addslashes($dompart)."' AND s.type='roundcube';");
+	  $db->query("SELECT * FROM sub_domaines s WHERE s.domaine=? AND s.type='roundcube';",array($dompart));
 	  if ($db->next_record()) {
 	    $domain=$db->Record;
 	    return "http://".$domain["sub"].(($domain["sub"])?".":"").$domain["domaine"];
@@ -79,8 +79,8 @@ class m_roundcube {
 
     include_once("/etc/roundcube/debian-db.php");
     if (! isset($dbtype)) {
-      global $err;
-      $err->raise("roundcube::hook_mail_delete_for_real",_("Problem: missing var in Debian Roundcube configuration file"));
+      global $msg;
+      $msg->raise('Error', "roundcube::hook_mail_delete_for_real",_("Problem: missing var in Debian Roundcube configuration file"));
       return false;
     }
 
@@ -97,18 +97,21 @@ class m_roundcube {
         break;
     }
 
-    $req = $dbh->query("SELECT user_id FROM users WHERE username = '$fullmail'");
+    $stmt = $dbh->prepare("SELECT user_id FROM users WHERE username = ?;");
+    $req=$stmt->execute(array($fullmail));
 
-    foreach ( $req->fetchAll() as $t ) {
+    if ($req) {
+    foreach ( $stmt->fetchAll() as $t ) {
       if (empty($t['user_id'])) continue ;
       $rcuser_id=$t['user_id'];
 
-      $dbh->query("DELETE from contactgroupmembers where contactgroup_id in (select contactgroup_id from contactgroups where user_id = $rcuser_id) ; ");
-      $dbh->query("DELETE from contactgroups where user_id = $rcuser_id ; ");
-      $dbh->query("DELETE from contacts where user_id = $rcuser_id ; ");
-      $dbh->query("DELETE from identities where user_id = $rcuser_id ; ");
-      $dbh->query("DELETE from users where user_id = $rcuser_id ; ");
+      $dbh->prepare("DELETE from contactgroupmembers where contactgroup_id in (select contactgroup_id from contactgroups where user_id = ?) ; ")->execute(array($rcuser_id));
+      $dbh->prepare("DELETE from contactgroups where user_id = ? ; ")->execute(array($rcuser_id));
+      $dbh->prepare("DELETE from contacts where user_id = ? ; ")->execute(array($rcuser_id));
+      $dbh->prepare("DELETE from identities where user_id = ? ; ")->execute(array($rcuser_id));
+      $dbh->prepare("DELETE from users where user_id = ? ; ")->execute(array($rcuser_id));
     } //foreach
+    }
 
   }
 

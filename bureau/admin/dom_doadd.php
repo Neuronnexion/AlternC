@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: dom_doadd.php,v 1.3 2003/06/10 11:18:27 root Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,10 +15,14 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Benjamin Sonntag
- Purpose of file: Add a new domain to a member's account
- ----------------------------------------------------------------------
 */
+
+/**
+ * Add a new domain name to an AlternC's account
+ *
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 include_once("head.php");
 
@@ -41,17 +37,19 @@ getFields($fields);
 $dom->lock();
 
 if (!$dom->add_domain($newdomain,$dns,0,0,$newisslave,$slavedom)) {
-	$error=$err->errstr();
 	include("dom_add.php");
 	exit();
-}
+} else
+	$msg->raise("INFO", "dom", _("Your new domain %s has been successfully installed"),$newdomain);
 
 $dom->unlock();
 
 ?>
 <h3><?php __("Add a domain"); ?></h3>
 <p>
-<?php printf(_("Your new domain %s has been successfully installed"),$newdomain); ?><br /><br />
+<?php
+echo $msg->msg_html_all();
+?>
 <span class="inb"><a href="dom_edit.php?domain=<?php echo urlencode($newdomain);?>" ><?php __("Click here to continue"); ?></a></span><br />
 <?php $mem->show_help("add_domain"); ?>
 <br />

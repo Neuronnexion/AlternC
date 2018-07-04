@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: adm_domstypeedit.php,v 1.6 2006/01/12 01:10:48 anarcat Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,13 +15,18 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Alan Garcia
- Purpose of file: Edit the domain types
- ----------------------------------------------------------------------
 */
+
+/**
+ * Form to update a domain type on the server
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 if (!$admin->enabled) {
-    __("This page is restricted to authorized staff");
+    $msg->raise("ERROR", "admin", _("This page is restricted to authorized staff"));
+    echo $msg->msg_html_all();
     exit();
 }
 
@@ -37,38 +34,35 @@ include_once("head.php");
 
 $fields = array (
     "name"          => array ("request", "string", ""),
-    "description"   => array ("request", "string", ""),
-    "target"        => array ("request", "string", ""),
-    "entry"         => array ("request", "string", ""),
-    "compatibility" => array ("request", "string", ""),
-    "enable"        => array ("request", "string", ""),
-    "only_dns"      => array ("request", "boolean", ""),
-    "need_dns"      => array ("request", "boolean", ""),
-    "advanced"      => array ("request", "boolean", ""),
-    "create_tmpdir"      => array ("request", "boolean", ""),
-    "create_targetdir"      => array ("request", "boolean", ""),
+    "description"   => array ("post", "string", ""),
+    "target"        => array ("post", "string", ""),
+    "entry"         => array ("post", "string", ""),
+    "compatibility" => array ("post", "string", ""),
+    "enable"        => array ("post", "string", ""),
+    "only_dns"      => array ("post", "boolean", ""),
+    "need_dns"      => array ("post", "boolean", ""),
+    "advanced"      => array ("post", "boolean", ""),
+    "create_tmpdir"      => array ("post", "boolean", ""),
+    "create_targetdir"      => array ("post", "boolean", ""),
 );
 getFields($fields);
 
 
-if (! $d=$dom->domains_type_get($name)) {
-	$error=$err->errstr();
-	echo $error;
-} else {
+$d=$dom->domains_type_get($name);
 ?>
 
 <h3><?php __("Edit a domain type"); ?> </h3>
 <hr id="topbar"/>
 <br />
 <?php
-if (isset($error_edit) && $error_edit) {
-	echo "<p class=\"alert alert-danger\">$error_edit</p>";
-	$error_edit="";
+echo $msg->msg_html_all();
 
-} ?>
+if (! $msg->has_msgs("ERROR")) {
+?>
 
 <form action="adm_domstypedoedit.php" method="post" name="main" id="main">
-    <input type="hidden" name="name" value="<?php echo $d['name']; ?>" />
+   <?php csrf_get(); ?>
+    <input type="hidden" name="name" value="<?php ehe($d['name']); ?>" />
     <table class="tedit">
       <tr>
             <th><?php __("Name");?></th>
@@ -76,7 +70,7 @@ if (isset($error_edit) && $error_edit) {
       </tr>
       <tr>
             <th><?php __("Description");?></th>
-            <td><input name="description" type="text" size="30" value="<?php echo $d['description']; ?>" /></td>
+            <td><input name="description" type="text" size="30" value="<?php ehe($d['description']); ?>" /></td>
       </tr>
 	    <tr>
             <th><?php __("Target type");?></th>
@@ -90,11 +84,11 @@ if (isset($error_edit) && $error_edit) {
       </tr>
 	    <tr>
             <th><?php __("Entry");?></th>
-            <td><input name="entry" type="text" size="30" value="<?php echo $d['entry']; ?>" /></td>
+            <td><input name="entry" type="text" size="30" value="<?php ehe($d['entry']); ?>" /></td>
       </tr>
 	    <tr>
           	<th><?php __("Compatibility");?><br /><small><?php __("Enter comma-separated name of other types"); ?></small></th>
-            <td><input name="compatibility" type="text" size="15" value="<?php echo $d['compatibility']; ?>" /></td>
+            <td><input name="compatibility" type="text" size="15" value="<?php ehe($d['compatibility']); ?>" /></td>
       </tr>
 	    <tr>
             <th><?php __("Enabled");?></th>

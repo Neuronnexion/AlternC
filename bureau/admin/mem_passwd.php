@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: mem_passwd.php,v 1.1.1.1 2003/03/26 17:41:29 root Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,10 +15,14 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file:
- Purpose of file:
- ----------------------------------------------------------------------
 */
+
+/**
+ * Changes a user account's password
+ *
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/
+ */
+
 require_once("../class/config.php");
 
 $fields = array (
@@ -38,10 +34,8 @@ getFields($fields);
 
 
 
-if (!$mem->passwd($oldpass,$newpass,$newpass2)) {
-	$error=$err->errstr();
-} else {
-	$error=_("Your password has been successfully changed.");
+if ($mem->passwd($oldpass,$newpass,$newpass2)) {
+	$msg->raise("INFO", "mem", _("Your password has been successfully changed."));
 }
 
 include_once("head.php");
@@ -49,10 +43,7 @@ include_once("head.php");
 ?>
 <div align="center"><h3><?php __("Password change"); ?></h3></div>
 <?php
-	if (isset($error) && $error) {
-		echo "<font color=red>$error</font>";
-		include("foot.php");
-		exit();
-	}
+echo $msg->msg_html_all();
+echo "<p><span class='ina'><a href='mem_param.php'>"._("Click here to continue")."</a></span></p>";
+include_once("foot.php");
 ?>
-<?php include_once("foot.php"); ?>

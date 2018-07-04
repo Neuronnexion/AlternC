@@ -1,13 +1,5 @@
 <?php
 /*
-   $Id: adm_slaveip.php,v 1.2 2004/06/02 13:03:13 anonymous Exp $
-   ----------------------------------------------------------------------
-   AlternC - Web Hosting System
-   Copyright (C) 2002 by the AlternC Development Team.
-   http://alternc.org/
-   ----------------------------------------------------------------------
-   Based on:
-   Valentin Lacambre's web hosting softwares: http://altern.org/
    ----------------------------------------------------------------------
    LICENSE
 
@@ -23,38 +15,44 @@
 
    To read the license please visit http://www.gnu.org/copyleft/gpl.html
    ----------------------------------------------------------------------
-   Original Author of file: Benjamin Sonntag
-   Purpose of file: Manage list of allowed ip for zone transfers
-   ----------------------------------------------------------------------
  */
+
+/**
+ * Manage the list of SLAVE DNS machines account and IPs
+ * used for the transfer of zones in Bind and the list of domains in domlist.php
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 
 if (!$admin->enabled) {
-  __("This page is restricted to authorized staff");
+  $msg->raise("ERROR", "admin", _("This page is restricted to authorized staff"));
+  echo $msg->msg_html_all();
   exit();
 }
 
 $fields = array (
     "delaccount"   => array ("request", "string", ""),
-    "newlogin"   => array ("request", "string", ""),
-    "newpass"    => array ("request", "string", ""),
+    "newlogin"   => array ("post", "string", ""),
+    "newpass"    => array ("post", "string", ""),
 
     "delip"   => array ("request", "string", ""),
-    "newip"    => array ("request", "string", ""),
-    "newclass" => array ("request", "string", "32"),
+    "newip"    => array ("post", "string", ""),
+    "newclass" => array ("post", "string", "32"),
     );
 getFields($fields);
 
 if ($delaccount) {
   // Delete an account
   if ($dom->del_slave_account($delaccount)) {
-    $error=_("The requested account has been deleted. It is now denied.");
+    $msg->raise("INFO", "admin", _("The requested account has been deleted. It is now denied."));
   }
 }
 if ($newlogin) {
   // Add an account
   if ($dom->add_slave_account($newlogin,$newpass)) {
-    $error=_("The requested account address has been created. It is now allowed.");
+    $msg->raise("INFO", "admin", _("The requested account address has been created. It is now allowed."));
     unset($newlogin); unset($newpass);
   }
 }
@@ -62,22 +60,21 @@ if ($newlogin) {
 if ($delip) {
   // Delete an ip address/class
   if ($dom->del_slave_ip($delip)) {
-    $error=_("The requested ip address has been deleted. It will be denied in one hour.");
+    $msg->raise("INFO", "admin", _("The requested ip address has been deleted. It will be denied in one hour."));
   }
 }
 if ($newip) {
   // Add an ip address/class
   if ($dom->add_slave_ip($newip,$newclass)) {
-    $error=_("The requested ip address has been added to the list. It will be allowed in one hour.");
+    $msg->raise("INFO", "admin", _("The requested ip address has been added to the list. It will be allowed in one hour."));
     unset($newip); unset($newclass);
   }
 }
 
 include_once("head.php");
 
-if (!empty($error)) {
-  echo "<p class=\"alert alert-danger\">$error</p>";
-}
+$c=$admin->listPasswordPolicies();
+$passwd_classcount = $c['adm']['classcount'];
 
 ?>
 <h3><?php __("Manage allowed ip for slave zone transfers"); ?></h3>
@@ -85,6 +82,8 @@ if (!empty($error)) {
 <?php
 
 $c=$dom->enum_slave_ip();
+
+echo $msg->msg_html_all();
 
 if (is_array($c)) { ?>
   <p>
@@ -110,6 +109,7 @@ if (is_array($c)) { ?>
 <p><?php __("If you want to allow an ip address or class to connect to your dns server, enter it here. Choose 32 as a prefix for single ip address."); ?></p>
 
 <form method="post" action="adm_slavedns.php" name="main" id="main">
+  <?php csrf_get(); ?>
   <table class="tedit">
     <tr><th><label for="newip"><?php __("IP Address"); ?></label></th><th><label for="newclass"><?php __("Prefix"); ?></label></th></tr>
     <tr>
@@ -153,19 +153,23 @@ if (is_array($c)) { ?>
 
 <p><?php __("If you want to allow a new server to access your domain list, give him an account."); ?></p>
 
-<form method="post" action="adm_slavedns.php" name="main" id="main">
+<form method="post" action="adm_slavedns.php" name="main" id="main" autocomplete="off">
+  <?php csrf_get(); ?>
+<!-- honeypot fields -->
+<input type="text" style="display: none" id="fakeUsername" name="fakeUsername" value="" />
+<input type="password" style="display: none" id="fakePassword" name="fakePassword" value="" />
+
   <table class="tedit">
     <tr><th><label for="newlogin"><?php __("Login"); ?></label></th><th><label for="newpass"><?php __("Password"); ?></label></th></tr>
     <tr>
       <td><input type="text" class="int" value="<?php ehe(  isset($newlogin)?$newlogin:'') ; ?>" id="newlogin" name="newlogin" maxlength="64" size="32" /><br/><br/></td>
-      <td><input type="password" class="int" value="<?php ehe( (isset($newpass)?$newpass:'') ) ; ?>" id="newpass" name="newpass" maxlength="64" size="32" /><?php display_div_generate_password(DEFAULT_PASS_SIZE,"#newpass"); ?></td>
+      <td><input type="password" class="int" autocomplete="off" value="<?php ehe( (isset($newpass)?$newpass:'') ) ; ?>" id="newpass" name="newpass" maxlength="64" size="32" /><?php display_div_generate_password(DEFAULT_PASS_SIZE,"#newpass","",$passwd_classcount); ?></td>
     </tr>
     <tr class="trbtn"><td colspan="2"><input type="submit" value="<?php __("Add this account to the allowed list"); ?>" class="inb" /></td></tr>
   </table>
 </form>
 
 <script type="text/javascript">
-  document.forms['main'].setAttribute('autocomplete', 'off');
   document.forms['main'].newip.focus();
 $(function(){
 	$(".toggle-next").on("click",function(){
@@ -191,16 +195,16 @@ display:none;
 }
 </style>
 <div class="info">
-<h4 class="toggle toggle-next"><a href="javascript:void(0)" class="btn"> <?= _("Need open DNS Slave servers?")?> &#9660;</a></h4>
+<h4 class="toggle toggle-next"><a href="javascript:void(0)" class="btn"> <?php __("Need open DNS Slave servers?"); ?> &#9660;</a></h4>
 <div class="info-hide">
-<p><?= _("We offer free of charge DNS servers for alternc users."); ?></p>
-<h2><?= _("How does it work?") ?> </h2>
+<p><?php __("We offer free of charge DNS servers for alternc users."); ?></p>
+<h2><?php __("How does it work?"); ?> </h2>
 <ol>
-	<li><?= sprintf(_("<strong>Give access to the alternc.net servers.</strong> Follow the instructions on <a href='%s' target='blank'>this page</a>. They will help you to configure this page and configure your alternc.net account."),"http://aide-alternc.org/go.php?hid=400") ?></li>
-	<li><?= sprintf(_("<strong>Subscribe to alternc.net.</strong> Go to <a href='%s' target='_blank' class='btn btn-inline btn-link'>the alternc.net site</a> to use the DNS servers provided for free by the AlternC association and enter the required informations for each server you want to connect to the service."),"http://alternc.net/")?> </li>
+	<li><?php printf(_("<strong>Give access to the alternc.net servers.</strong> Follow the instructions on <a href='%s' target='blank'>this page</a>. They will help you to configure this page and configure your alternc.net account."),"http://aide-alternc.org/go.php?hid=400"); ?></li>
+	<li><?php printf(_("<strong>Subscribe to alternc.net.</strong> Go to <a href='%s' target='_blank' class='btn btn-inline btn-link'>the alternc.net site</a> to use the DNS servers provided for free by the AlternC association and enter the required informations for each server you want to connect to the service."),"http://alternc.net/"); ?> </li>
 </ol>
 <br />
-<p><?= _("The alternc.net servers will take care of transfering and distributing to the world your domains zones.") ?> </p>
+<p><?php __("The alternc.net servers will take care of transfering and distributing to the world your domains zones."); ?> </p>
 </div><!-- info-hide -->
 </div><!-- info  -->
 <?php include_once("foot.php"); ?>

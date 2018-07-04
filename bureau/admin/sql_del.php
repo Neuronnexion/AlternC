@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: sql_del.php,v 1.3 2003/06/10 07:20:29 root Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,10 +15,14 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Benjamin Sonntag
- Purpose of file: Delete a mysql user database
- ----------------------------------------------------------------------
 */
+
+/**
+ * Delete MySQL databases for the account
+ *
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/
+ */
+
 require_once("../class/config.php");
 include_once ("head.php");
 
@@ -35,20 +31,15 @@ $fields = array (
 );
 getFields($fields);
 
-if(!isset($error)){
-	$error="";
-}
-
+// DO IT 
 if ($confirm=="y" ) {
   reset($_POST);
   while (list($key,$val)=each($_POST)) {
     if (substr($key,0,4)=="del_") {
       // Effacement de la base $val
       $r=$mysql->del_db(substr($key,4));
-      if (!$r) {
-	$error.=$err->errstr()."<br />";
-      } else {
-	$error.=sprintf(_("The database %s has been successfully deleted"),$val)."<br />";
+      if ($r) {
+	$msg->raise("INFO", "mysql", _("The database '%s' has been successfully deleted"), $val);
       }
     }
   }
@@ -56,6 +47,7 @@ if ($confirm=="y" ) {
   exit();
 }
 
+// Confirm form 
 $found=false;
 foreach($_POST as $key=>$val) {
   if (substr($key,0,4)=="del_") {
@@ -63,7 +55,7 @@ foreach($_POST as $key=>$val) {
   }
 }
 if (!$found) {
-  $error=_("Please check which databases you want to delete"); 
+  $msg->raise("ALERT", "mysql", _("Please check which databases you want to delete"));
   include("sql_list.php");
   exit();
  }
@@ -75,13 +67,14 @@ if (!$found) {
 <p class="alert alert-warning"><?php __("WARNING"); ?></big><br /><?php __("Confirm the deletion of the following SQL databases"); ?><br />
 <?php __("This will delete all the tables currently in those db."); ?></p>
 <form method="post" action="sql_del.php" id="main">
+  <?php csrf_get(); ?>
 <p>
 <input type="hidden" name="confirm" value="y" />
 <?php
 reset($_POST);
 while (list($key,$val)=each($_POST)) {
   if (substr($key,0,4)=="del_") {
-    echo "<input type=\"hidden\" name=\"$key\" value=\"$val\" />".$val."<br />\n";
+      echo "<input type=\"hidden\" name=\"".ehe($key,false)."\" value=\"".ehe($val,false)."\" /><ul><li><b>".ehe($val,false)."</b></li></ul>\n";
   }
 }
 

@@ -1,15 +1,5 @@
 <?php
 /*
- $Id: adm_doedit.php,v 1.6 2006/01/24 05:03:30 joe Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2006 Le réseau Koumbit Inc.
- http://koumbit.org/
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -25,43 +15,49 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Benjamin Sonntag
- Purpose of file: Edit a member's parameters
- ----------------------------------------------------------------------
 */
+
+/**
+ * Edit an account settings (name, password, etc.)
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 
 if (!$admin->enabled) {
-  __("This page is restricted to authorized staff");
+  $msg->raise("ERROR", "admin", _("This page is restricted to authorized staff"));
+  echo $msg->msg_html_all();
   exit();
 }
 
 $subadmin=variable_get("subadmin_restriction");
 
 $fields = array (
-	"uid" => array ("request", "integer", 0),
-	"enabled" => array ("request", "boolean", true),
-	"pass" => array ("request", "string", ""),
-	"passconf" => array ("request", "string", ""),
-	"canpass" => array ("request", "boolean", true),
-	"notes" => array ("request", "string", ""),
-	"nom" => array ("request", "string", ""),
-	"prenom" => array ("request", "string", ""),
-	"nmail" => array ("request", "string", ""),
-	"type" => array ("request", "string", ""),
-	"duration" => array ("request", "integer", 0),
-	"reset_quotas" => array ("request", "string", false),
+	"uid" => array ("post", "integer", 0),
+	"enabled" => array ("post", "boolean", true),
+	"pass" => array ("post", "string", ""),
+	"passconf" => array ("post", "string", ""),
+	"canpass" => array ("post", "boolean", true),
+	"notes" => array ("post", "string", ""),
+	"nom" => array ("post", "string", ""),
+	"prenom" => array ("post", "string", ""),
+	"nmail" => array ("post", "string", ""),
+	"type" => array ("post", "string", ""),
+	"duration" => array ("post", "integer", 0),
+	"reset_quotas" => array ("post", "string", false),
 );
 getFields($fields);
 
 
 if ($subadmin==0 && !$admin->checkcreator($uid)) {
-  __("This page is restricted to authorized staff");
+  $msg->raise("ERROR", "admin", _("This page is restricted to authorized staff"));
+  echo $msg->msg_html_all();
   exit();
 }
 
 if ($pass != $passconf) {
-  $error = _("Passwords do not match");
+  $msg->raise("ERROR", "admin", _("Passwords do not match"));
   include("adm_edit.php");
   exit();
 }
@@ -71,10 +67,8 @@ if ($uid==$mem->user["uid"]) {
 }
 
 if (!$admin->update_mem($uid, $nmail, $nom, $prenom, $pass, $enabled, $canpass, $type, $duration, $notes, $reset_quotas)){
-  $error=$err->errstr();
   include("adm_edit.php");
 } else {
-  $error=_("The member has been successfully edited");
+  $msg->raise("INFO", "admin", _("The member has been successfully edited"));
   include("adm_list.php");
 }
-?>

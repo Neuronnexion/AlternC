@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: adm_doms.php,v 1.1 2003/09/20 19:41:06 root Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,14 +15,19 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Benjamin Sonntag
- Purpose of file: Manage allowed TLD on the server
- ----------------------------------------------------------------------
 */
+
+/**
+ * List domains on the server and their DNS / Vhost compatibility
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 
 if (!$admin->enabled) {
-	__("This page is restricted to authorized staff");
+	$msg->raise("ERROR", "admin", _("This page is restricted to authorized staff"));
+	echo $msg->msg_html_all();
 	exit();
 }
 
@@ -39,9 +36,7 @@ include_once ("head.php");
 ?>
 <h3><?php __("Manage installed domains"); ?></h3>
 <?php
-if (isset($error) && $error) {
-  echo "<p class=\"alert alert-danger\">$error</p>";
-}
+echo $msg->msg_html_all();
 
 $fields = array (
 	"force"    		=> array ("get", "integer", "0"),
@@ -65,8 +60,12 @@ $c=$admin->dom_list(true,$forcecheck);
 <?php __("If you want to force the check of NS, MX, IP on domains, click the link"); ?> <a href="adm_doms.php?force=1"><?php __("Show domain list with refreshed checked NS, MX, IP information"); ?></a>
 </p>
 <form method="post" action="adm_dodom.php" name="main" id="main">
-<table class="tlist">
+  <?php csrf_get(); ?>
+<table class="tlist" id="dom_list_table">
+<thead>
     <tr><th></th><th><?php __("Action"); ?></th><th><?php __("Domain"); ?></th><th><?php __("Creator"); ?></th><th><?php __("Connect as"); ?></th><th><?php __("OK?"); ?></th><th><?php __("Status"); ?></th></tr>
+</thead>
+<tbody>
 <?php
 for($i=0;$i<count($c);$i++) {
 ?>
@@ -75,9 +74,9 @@ for($i=0;$i<count($c);$i++) {
 				    <td><?php if ($c[$i]["noerase"]) {
 			echo "<img src=\"icon/encrypted.png\" width=\"16\" height=\"16\" alt=\""._("Locked Domain")."\" />";
 				    } ?></td>
-<td><div class="ina"><a href="adm_domlock.php?domain=<?php echo urlencode($c[$i][domaine]); ?>"><?php
+<td><div class="ina"><a href="adm_domlock.php?domain=<?php echo urlencode($c[$i]["domaine"]); ?>"><?php
    if ($c[$i]["noerase"]) __("Unlock"); else __("Lock");  ?></a></div></td>
-<td><a href="http://<?php echo $c[$i][domaine]; ?>" target="_blank"><?php echo $c[$i]["domaine"]; ?></a></td>
+<td><a href="http://<?php echo $c[$i]["domaine"]; ?>" target="_blank"><?php echo $c[$i]["domaine"]; ?></a></td>
 <td><?php echo $c[$i]["login"]; ?></td>
 <td>
 <?php		  if($admin->checkcreator($c[$i]['uid'])) {
@@ -98,6 +97,15 @@ for($i=0;$i<count($c);$i++) {
 <?php
 }
 ?>
+</tbody>
 </table>
 </form>
+<script type="text/javascript">
+
+$(document).ready(function()
+    {
+        $("#dom_list_table").tablesorter();
+    }
+);
+</script>
 <?php include_once("foot.php"); ?>

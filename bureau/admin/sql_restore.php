@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: sql_restore.php,v 1.5 2003/06/10 13:16:11 root Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,31 +15,31 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Benjamin Sonntag
- Purpose of file: Manage the MySQL Restore
- ----------------------------------------------------------------------
 */
-require_once("../class/config.php");
+
+/** 
+ * Restore a MySQL database for an account
+ *
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/
+ */
+
+ require_once("../class/config.php");
 include_once("head.php");
 
 $fields = array (
 	"id"           => array ("request", "string", ""),
-	"filename"     => array ("request", "string", ""),
+	"filename"     => array ("post", "string", ""),
 );
 getFields($fields);
 
-if (!$r=$mysql->get_mysql_details($id)) {
-	$error=$err->errstr();
-}
+$r=$mysql->get_mysql_details($id);
 
 ?>
 <h3><?php __("MySQL Databases"); ?></h3>
 <hr id="topbar"/>
 <br />
 <?php
-if (!empty($error)) {
-	echo "<p class=\"alert alert-danger\">$error</p><p>&nbsp;</p>";
-}
+echo $msg->msg_html_all();
 
 if (!is_array($r)) {
   echo "<p>"._("You currently have no database defined")."</p>";
@@ -55,16 +47,18 @@ if (!is_array($r)) {
   exit;
 }
 ?>
-<h3><?php printf(_("Restore a MySQL backup for database %s"),$r["db"]); ?></h3>
+<h3 class="restore"><?php printf(_("Restore a MySQL backup for database %s"),$r["db"]); ?></h3>
 <?php
 echo "<p>";
 __("Warning: Write the complete path and the filename. <br />For example if your backups are in the directory /Backups,<br />write /Backups/file.sql.gz (where file.sql.gz is the filename).");
 echo "</p>";
 ?>
 <form action="sql_dorestore.php" method="post">
-<input type="hidden" name="id" value="<?php echo $id ?>" />
+  <?php csrf_get(); ?>
+<input type="hidden" name="id" value="<?php ehe($id); ?>" />
 <p><label for="restfile"><?php __("Please enter the path and the filename containing SQL data to be restored."); ?></label></p>
-<p><input type="text" class="int" id="restfile" name="restfile" size="35" maxlength="255" value="<?php ehe($filename); ?>" /> <input class="inb" type="submit" name="submit" onClick='return restfilenotempty();' value="<?php __("Restore my database"); ?>" /><i><?php __("Tip: you can restore a file directly in the File Browser");?></i></p>
+<p><input type="text" class="int" id="restfile" name="restfile" size="35" maxlength="255" value="<?php ehe($filename); ?>" /> <input class="inb" type="submit" name="submit" onClick='return restfilenotempty();' value="<?php __("Restore my database"); ?>" /><i>
+<br /><?php __("Tip: you can restore a file directly in the File Browser");?></i></p>
 </form>
 <script type="text/javascript">
   function restfilenotempty() {

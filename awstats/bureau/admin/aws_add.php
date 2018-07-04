@@ -30,7 +30,7 @@ $fields = array (
 getFields($fields);
 
 if (!$id && !$quota->cancreate("aws")) {
-	$error=_("You cannot add any new statistics, your quota is over.");
+	$msg->raise('Alert', "aws", _("You cannot add any new statistics, your quota is over."));
 }
 
 include_once("head.php");
@@ -42,11 +42,10 @@ include_once("head.php");
 <br/>
 <br/>
 <?php
-	if (isset($error) && $error) {
-		echo "<p class=\"error\">$error</p></body></html>";
-	}
+echo $msg->msg_html_all();
 ?>
 <form method="post" action="<?php if (!$id) echo "aws_doadd.php"; else echo "aws_doedit.php"; ?>" id="main" name="main">
+<?php csrf_get(); ?>
 <table class="tedit">
 <tr><th><input type="hidden" name="id" value="<?php echo $id ?>" />
         <label for="hostname"><?php __("Domain name"); ?></label></th><td>

@@ -1,26 +1,26 @@
 <?php
 
 /* Read global variables (AlternC configuration) */
-$L_VERSION="@@REPLACED_DURING_BUILD@@";
+$L_VERSION = "@@REPLACED_DURING_BUILD@@";
 
 // To be able to have displayer version != help version
 // (usefull during RC, etc...)
-$L_VERSION_HELP="3.0";
+$L_VERSION_HELP = "3.0";
 
 /* To ease the transition, we define a lookup table for old names */
-$compat = array('DEFAULT_MX'   => 'MX',
-                'MYSQL_USER'   => 'MYSQL_LOGIN',
-                'MYSQL_PASS'   => 'MYSQL_PWD',
-                'NS1_HOSTNAME' => 'NS1',
-                'NS2_HOSTNAME' => 'NS2');
+$compat = array('DEFAULT_MX' => 'MX',
+'MYSQL_USER' => 'MYSQL_LOGIN',
+'MYSQL_PASS' => 'MYSQL_PWD',
+'NS1_HOSTNAME' => 'NS1',
+'NS2_HOSTNAME' => 'NS2');
 
 
 $config_file = fopen('/etc/alternc/local.sh', 'r');
 while (FALSE !== ($line = fgets($config_file))) {
     if (preg_match('/^([A-Za-z0-9_]*) *= *"?(.*?)"?$/', trim($line), $regs)) {
-        $GLOBALS['L_'.$regs[1]] = $regs[2];
+        $GLOBALS['L_' . $regs[1]] = $regs[2];
         if (isset($compat[$regs[1]])) {
-            $GLOBALS['L_'.$compat[$regs[1]]] = $regs[2];
+            $GLOBALS['L_' . $compat[$regs[1]]] = $regs[2];
         }
     }
 }
@@ -28,7 +28,7 @@ while (FALSE !== ($line = fgets($config_file))) {
 fclose($config_file);
 
 $config_file = fopen('/etc/alternc/my.cnf', 'r');
-while (FALSE !== ($line = fgets($config_file))) {
+while (false!== ($line = fgets($config_file))) {
     if (preg_match('/^([A-Za-z0-9_]*) *= *"?(.*?)"?$/', trim($line), $regs)) {
         switch ($regs[1]) {
         case "user":
@@ -48,4 +48,3 @@ while (FALSE !== ($line = fgets($config_file))) {
 }
 
 fclose($config_file);
-?>

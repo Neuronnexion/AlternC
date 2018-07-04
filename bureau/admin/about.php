@@ -1,13 +1,5 @@
 <?php
 /*
-$Id: adm_email.php,v 1.1 2005/09/05 10:55:48 arnodu59 Exp $
-----------------------------------------------------------------------
-AlternC - Web Hosting System
-Copyright (C) 2005 by the AlternC Development Team.
-http://alternc.org/
-----------------------------------------------------------------------
-Based on:
-Valentin Lacambre's web hosting softwares: http://altern.org/
 ----------------------------------------------------------------------
 LICENSE
 
@@ -23,11 +15,15 @@ GNU General Public License for more details.
 
 To read the license please visit http://www.gnu.org/copyleft/gpl.html
 ----------------------------------------------------------------------
-Original Author of file: Benjamin Sonntag
-Purpose of file: Show a form to edit a member
-----------------------------------------------------------------------
 */
-require_once("../class/config.php");
+
+/**
+ * About page
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/
+ */
+
+ require_once("../class/config.php");
 
 include("head.php");
 
@@ -44,14 +40,14 @@ __("AlternC is an automatic hosting software suite. It features a PHP-based admi
 
 <p>
   <ul>
-    <li><?php __("Official website: ");?> <a target=_blank href="http://alternc.com">http://alternc.com</a></li>
-    <li><?php __("Developer website: ");?> <a target=_blank href="https://alternc.org">https://alternc.org</a></li>
-    <li><?php __("Help: ");?> <a target=_blank href="http://aide-alternc.org">http://aide-alternc.org</a></li>
+    <li><?php __("Official website: ");?> <a target="_blank" href="https://alternc.com">http://alternc.com</a></li>
+    <li><?php __("Developer website: ");?> <a target="_blank" href="https://github.com/AlternC">https://github.com/AlternC</a></li>
+    <li><?php __("Help: ");?> <a target="_blank" href="https://aide-alternc.org">https://aide-alternc.org</a></li>
   </ul>
 </li>
 
 <hr/>
-<p class="center"><a href="http://www.alternc.com" target="_blank"><img src="images/logo2.png" border="0" alt="AlternC" /></a>
+<p class="center"><a href="https://www.alternc.com" target="_blank"><img src="images/logo2.png" border="0" alt="AlternC" /></a>
 <br />
 <?php 
 __("You are currently using AlternC ");

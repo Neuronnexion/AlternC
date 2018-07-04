@@ -1,5 +1,6 @@
 #!/bin/bash
 # Update domain next-gen by fufroma
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 for CONFIG_FILE in \
       /etc/alternc/local.sh \
@@ -21,11 +22,9 @@ umask 022
 LOCK_FILE="/usr/share/alternc/panel/cron.lock" # FIXME doesn't seem clean to be here
 OLDIFS="$IFS"
 NEWIFS=" "
-LOGFORMAT_FILE="/etc/alternc/apache_logformat.conf"
 RELOAD_WEB="$(mktemp /tmp/alternc_reload_web.XXXX)"
+RELOAD_DNS="$(mktemp /tmp/alternc_reload_dns.XXXX)"
 B="µµ§§" # Strange letters to make split in query
-
-echo "" > "$RELOAD_WEB"
 
 # Somes check before start operations
 if [ `id -u` -ne 0 ]; then
@@ -48,6 +47,9 @@ fi
 
 # We lock the application
 echo $$ > "$LOCK_FILE"
+
+echo "" > "$RELOAD_WEB"
+echo "" > "$RELOAD_DNS"
 
 # For domains we want to delete completely, make sure all the tags are all right
 # set sub_domaines.web_action = delete where domaines.dns_action = DELETE
@@ -94,6 +96,7 @@ for dom in `mysql_query "select domaine from domaines where dns_action = 'UPDATE
 do
     dns_delete $dom
     mysql_query "update domaines set dns_action = 'OK', dns_result = '$?' where domaine = '$dom'"
+    echo 1 >"$RELOAD_DNS"
 done
 
 # Domains we have to update the dns :
@@ -103,6 +106,7 @@ do
     echo "dns_regenerate : domain=/$dom/"
     dns_regenerate $dom
     mysql_query "update domaines set dns_action = 'OK', dns_result = '$?' where domaine = '$dom'"
+    echo 1 >"$RELOAD_DNS"
 done
 
 # Domains we want to delete completely, now we do it
@@ -112,6 +116,7 @@ do
     dns_delete $dom
     # Web configurations have already bean cleaned previously
     mysql_query "delete from sub_domaines where domaine='$dom'; delete from domaines where domaine='$dom';"
+    echo 1 >"$RELOAD_DNS"
 done
 
 if [ ! -z "$(cat "$RELOAD_WEB")" ] || [ "$1" = "force" ]; then
@@ -124,15 +129,7 @@ if [ ! -z "$(cat "$RELOAD_WEB")" ] || [ "$1" = "force" ]; then
 
   (
     echo "###BEGIN OF ALTERNC AUTO-GENERATED FILE - DO NOT EDIT MANUALLY###"
-    # If exists and readable, include conf file "apache_logformat.conf"
-    # contain LogFormat and CustomLog directives for our Vhosts)
-    echo "## LogFormat informations"
-    if [ ! -r "$LOGFORMAT_FILE" ] ; then
-      echo "## Warning : Cannot read $LOGFORMAT_FILE"
-    else
-      echo "Include \"$LOGFORMAT_FILE\""
-    fi
-    find "$VHOST_DIR/" -mindepth 2 -type f -iname "*.conf" -print0 | xargs -0 cat 
+    find "$VHOST_DIR"/ -mindepth 2 -type f -iname "*.conf" -print0 | xargs -0 cat
     echo "###END OF ALTERNC AUTO-GENERATED FILE - DO NOT EDIT MANUALLY###" 
   ) > "$tempo"
 
@@ -152,6 +149,12 @@ if [ ! -z "$(cat "$RELOAD_WEB")" ] || [ "$1" = "force" ]; then
   run-parts --arg=web_reload /usr/lib/alternc/reload.d
 fi
 
+# If we added / edited / deleted at least one dns zone file, we go here in the end:
+if [ ! -z "$(cat "$RELOAD_DNS")" ] ; then
+    service opendkim restart
+    run-parts --arg=dns_reload /usr/lib/alternc/reload.d
+fi
+
 ## FIXME : move the slave part into the /usr/lib/alternc/reload.d directory to be an hook
 #for slave in $ALTERNC_SLAVES; do
 #    if [ "$slave" != "localhost" ]; then
@@ -159,7 +162,7 @@ fi
 #    fi
 #done
 
-rm -f "$LOCK_FILE" "$RELOAD_ZONES" "$RELOAD_WEB" "$INOTIFY_UPDATE_DOMAIN"
+rm -f "$LOCK_FILE" "$RELOAD_ZONES" "$RELOAD_WEB" "$INOTIFY_UPDATE_DOMAIN" "$RELOAD_DNS"
 
 exit 0
 

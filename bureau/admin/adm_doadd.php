@@ -1,10 +1,6 @@
 <?php
 /*
  ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2000-2012 by the AlternC Development Team.
- https://alternc.org/
- ----------------------------------------------------------------------
  LICENSE
 
  This program is free software; you can redistribute it and/or
@@ -20,10 +16,18 @@
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
 */
+
+/**
+ * Validate and create a new account
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/
+ */
+
 require_once("../class/config.php");
 
 if (!$admin->enabled) {
-	__("This page is restricted to authorized staff");
+	$msg->raise("ERROR", "admin", _("This page is restricted to authorized staff"));
+	echo $msg->msg_html_all();
 	exit;
 }
 $fields = array (
@@ -50,19 +54,18 @@ if ($create_dom && !empty($create_dom_list) ) {
 }
 
 if ($pass != $passconf) {
-	$error = _("Passwords do not match");
+	$msg->raise("ERROR", "admin", _("Passwords do not match"));
 	include("adm_add.php");
 	exit();
 }
 
 // Attemp to create, exit if fail
 if (!($u=$admin->add_mem($login, $pass, $nom, $prenom, $nmail, $canpass, $type, 0, $notes, 0, $dom_to_create, $db_server_id))) {
-	$error=$err->errstr();
 	include ("adm_add.php");
 	exit;
 }
- 
-$error=_("The new member has been successfully created");
+
+$msg->raise("INFO", "admin", _("The new member has been successfully created"));
 
 include("adm_list.php");
 exit;

@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: sql_users_doadd.php,v 1.2 2003/06/10 07:20:29 nahuel Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,32 +15,39 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Nahuel ANGELINETTI
- Purpose of file:
- ----------------------------------------------------------------------
 */
+
+/**
+ * Create a new MySQL user account 
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/
+ */
+
 require_once("../class/config.php");
 
 $fields = array (
-	"usern"     => array ("request", "string", ""),
-	"password"    => array ("request", "string", ""),
-	"passconf"    => array ("request", "string", ""),
+	"usern"     => array ("post", "string", ""),
+	"password"    => array ("post", "string", ""),
+	"passconf"    => array ("post", "string", ""),
 );
 getFields($fields);
 
-
-if(!empty($usern)){
+if (!empty($usern)) {
   if (!$mysql->add_user($usern,$password,$passconf)) {
-    $error=$err->errstr();
     include("sql_users_add.php");
     exit;
+  } else {
+    $username=$mem->user["login"]."_".$usern;
+    $msg->raise("INFO", "mysql", _("The user '%s' has been successfully created."),$username);
   }
-}else{
+} else {
   $usern=$mem->user["login"];
   if (!$mysql->add_user($usern,$password,$passconf)) {
-    $error=$err->errstr();
     include("sql_users_add.php");
     exit;
+  } else {
+    $username=$mem->user["login"];
+    $msg->raise("INFO", "mysql", _("The user '%s' has been successfully created."),$username);
   }
 }
 

@@ -62,7 +62,7 @@ for file in $( ls $extensions | sort -n ) ; do
 		upvers=`strip_ext $file`
                 # the extension
 		ext=`get_ext $file`
-		if dpkg --compare-versions $upvers gt $oldvers; then
+		if dpkg --compare-versions "$upvers" gt "$oldvers"; then
 		  echo "Running upgrade script $file"
                   # run the proper program to interpret the upgrade script
 		  case "$ext" in
@@ -75,9 +75,13 @@ for file in $( ls $extensions | sort -n ) ; do
 			  ;;
 		      php)
 		  	  php -q $file
+			  echo "UPDATE alternc_status SET value='$file' WHERE name='alternc_version';" | 
+			    mysql --defaults-file=/etc/alternc/my.cnf -f
 			  ;;
 		      sh)
 		  	  bash $file
+			  echo "UPDATE alternc_status SET value='$file' WHERE name='alternc_version';" | 
+			    mysql --defaults-file=/etc/alternc/my.cnf -f
 			  ;;
                       *)
 			  echo "skipping $file, not recognized !"

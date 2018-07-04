@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: hta_adduser.php,v 1.6 2006/01/12 01:10:48 anarcat Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,28 +15,35 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Franck Missoum, Benjamin Sonntag
- Purpose of file: Add a username to a protected folder
- ----------------------------------------------------------------------
 */
+
+/** 
+ * Add a user to a protected folder (using .htaccess for apache)
+ *
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 include_once("head.php");
 
 $fields = array (
 	"dir"      => array ("request", "string", ""),
-	"user"     => array ("request", "string", ""),
+	"user"     => array ("post", "string", ""),
 );
 getFields($fields);
 
 ?>
 <h3><?php printf(_("Adding a username in %s"),$dir); ?></h3>
 <?php
-	if (isset($error) && $error) {
-		echo "<p class=\"alert alert-danger\">$error</p>";
-	}
+echo $msg->msg_html_all();
+
+$c=$admin->listPasswordPolicies();
+$passwd_classcount = $c['hta']['classcount'];
 ?>
 
-<form method="post" action="hta_doadduser.php" name="main" id="main">
+<form method="post" action="hta_doadduser.php" name="main" id="main" autocomplete="off">
+  <?php csrf_get(); ?>
+
 <table border="1" cellspacing="0" cellpadding="4" class='tedit'>
 	<tr>
 		<th><input type="hidden" name="dir" value="<?php ehe($dir); ?>" /><?php __("Folder"); ?></th>
@@ -56,11 +55,11 @@ getFields($fields);
 	</tr>
 	<tr>
 		<th><label for="password"><?php __("Password"); ?></label></th>
-		<td><input type="password" class="int" name="password" id="password" value="" size="20" maxlength="64" /><?php display_div_generate_password(DEFAULT_PASS_SIZE,"#password","#passwordconf"); ?></td>
+		<td><input type="password" class="int" name="password" autocomplete="off" id="password" value="" size="20" maxlength="64" /><?php display_div_generate_password(DEFAULT_PASS_SIZE,"#password","#passwordconf",$passwd_classcount); ?></td>
 	</tr>
 	<tr>
 		<th><label for="passwordconf"><?php __("Confirm password"); ?></label></th>
-		<td><input type="password" class="int" name="passwordconf" id="passwordconf" value="" size="20" maxlength="64" /></td>
+		<td><input type="password" class="int" name="passwordconf" autocomplete="off" id="passwordconf" value="" size="20" maxlength="64" /></td>
 	</tr>
 </table>
 <br />
@@ -68,6 +67,6 @@ getFields($fields);
   <input type="button" class="inb" value="<?php __("Cancel"); ?>" onclick="document.location='hta_edit.php?dir=<?php echo urlencode($dir);  ?>';" />
 </form>
 <script type="text/javascript">
-document.forms['main'].user.focus();
+  document.forms['main'].user.focus();
 </script>
 <?php include_once("foot.php"); ?>

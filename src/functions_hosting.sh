@@ -18,15 +18,18 @@ launch_hooks() {
 
   local VTYPE=$2
 
+  EXITCODE=0
   if [ -x "$HOSTING_DIR/hosting_$VTYPE.sh" ] ; then
     # If a specific script exist for this VTYPE,
     # we launch it, and return his return code
     "$HOSTING_DIR/hosting_$VTYPE.sh" "$1" "$2" "$3" "$4" 
-    return $?
+    EXITCODE=$?
   fi
-
+  # also launch ssl update domains hook
+  /usr/lib/alternc/update_certs.sh "$1" "$2" "$3" "$4"
+  
   # No specific script, return 0
-  return 0
+  return "$EXITCODE"
 }
 
 host_conffile() {
@@ -121,6 +124,11 @@ host_create() {
         -e "s#%%user%%#$USER2#g" \
         $TMP_FILE
 
+    ## Fix for wildcard
+    if [[ "$FQDN2" == "*."* ]]; then
+       sed -i "s/ServerName/ServerAlias/" $TMP_FILE
+    fi
+
     # Check if all is right in the conf file
     # If not, put a debug message
 # NO : redirect and document_root COULD contains legitimate %% expressions (...) 
@@ -204,10 +212,14 @@ host_delete() {
       return $?
     fi
 
-    local FENABLED=$(host_conffile "$FQDN")
-    local FDISABLED="$FENABLED-disabled"
-
-    [ -w "$FENABLED" ] && rm -f "$FENABLED"
-    [ -w "$FDISABLED" ] && rm -f "$FDISABLED"
+    # Fix of a longstanding BUG: we only DELETE the vhost file if the type is a vhost one !
+    if [ -f "${TEMPLATE_DIR}/${VTYPE}.conf" ]
+    then
+	local FENABLED=$(host_conffile "$FQDN")
+	local FDISABLED="$FENABLED-disabled"
+	
+	[ -w "$FENABLED" ] && rm -f "$FENABLED"
+	[ -w "$FDISABLED" ] && rm -f "$FDISABLED"
+    fi
 }
 

@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: log_list.php,v 1.8 2006/02/16 16:26:28 benjamin Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,10 +15,15 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Lerider Steven
- Purpose of file: Manage the log listing of a user
- ----------------------------------------------------------------------
 */
+
+/**
+ * Show a list of all found log files for an account
+ * and allow to see / tail / download them
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 include_once("head.php");
 
@@ -36,11 +33,11 @@ $list=$log->list_logs_directory_all($log->get_logs_directory());
 <hr id="topbar"/>
 <br />
 <?php
-if (isset($error) && $error) {
-  echo "<p class=\"alert alert-danger\">$error</p>";
-}
+echo $msg->msg_html_all();
+
 if(!$list || empty($list['dir'])){
-  echo "<p class=\"alert alert-danger\">"._("You have no web logs to list at the moment.")."</p>";  
+  $msg->raise("INFO", "logs", _("You have no web logs to list at the moment."));  
+  echo $msg->msg_html_all();
   include_once('foot.php');
   exit;
 }
@@ -62,7 +59,11 @@ while (list($key,$val)=each($list)){
   <td><?php echo $v['name']; ?></td>  
   <td><?php echo $v['creation_date']; ?></td>  
   <td><?php echo format_size($v['filesize']); ?></td>  
-  <td><?php echo "<a href=\"".$v['downlink']."\">"._("Download")."</a>";?></td>
+  <td><?php echo "<a href=\"logs_download.php?file=".$v['downlink']."\">"._("Download")."</a>";
+    if ((time()-14400)<$v['mtime']) {
+      echo " &nbsp; <a href=\"logs_tail.php?file=".$v['downlink']."\">"._("Follow")."</a>";
+    }
+?></td>
   </tr>
 <?php
   } //foreach

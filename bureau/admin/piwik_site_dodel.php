@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: piwik_site_dodel.php,v 1.2 2003/06/10 06:45:16 root Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,10 +15,14 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: François Serman
- Purpose of file: Delete piwik websites
- ----------------------------------------------------------------------
 */
+
+/**
+ * Delete piwik websites
+ *
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/
+ */
+
 require_once("../class/config.php");
 
 $fields = array (
@@ -36,18 +32,15 @@ $fields = array (
 getFields($fields);
 
 if ($siteid === -1) {
-    $error=_("Missing site parameters");
+    $msg->raise("ERROR", "piwik", _("Missing site parameters"));
     include('piwik_sitelist.php'); 
     exit;
 }
 
 if(!empty($confirm_del) ) {
 
-  if (! $piwik->site_delete($siteid) ) {
-    $error=$err->errstr();
-  } else {
-    include_once('head.php');
-    __("Site successfully deleted");
+  if ($piwik->site_delete($siteid) ) {
+    $msg->raise("INFO", "piwik", _("Site successfully deleted"));
   }
 
   include('piwik_sitelist.php'); 
@@ -66,7 +59,8 @@ include_once('head.php');
 <br />
 
   <form method="post" action="piwik_site_dodel.php" name="main" id="main">
-    <input type="hidden" name="siteid"  value="<?php echo $siteid;?>" />
+  <?php csrf_get(); ?>
+    <input type="hidden" name="siteid"  value="<?php ehe($siteid);?>" />
     <input type="submit" class="inb" name="confirm_del" value="<?php __("Delete")?>" />
     <input type="button" class="inb" name="cancel" value="<?php __("Cancel"); ?>" onclick="document.location='piwik_sitelist.php'" />
   </form>

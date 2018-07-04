@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: hta_dodeluser.php,v 1.1.1.1 2003/03/26 17:41:29 root Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,10 +15,14 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Franck Missoum
- Purpose of file: Delete a username from a protected folder
- ----------------------------------------------------------------------
 */
+
+/**
+ * Delete a username from a protected folder
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 
 $fields = array (
@@ -38,10 +34,13 @@ getFields($fields);
 
 if (!empty($confirm_del)) {
   reset($d);
-  if (!$hta->del_user($d,$dir)) {
-    $error=$err->errstr();
+  if ($hta->del_user($d,$dir)) {
+    foreach ($d as $v) {
+      $msg->raise("INFO", "hta", _("The user '%s' was successfully deleted"), $v);
+    }
   }
-  header ('Location: /hta_edit.php?dir='.urlencode($dir));
+  $is_include=true;
+  include_once("hta_edit.php");
   exit();
 }
 include_once('head.php');
@@ -52,14 +51,15 @@ include_once('head.php');
   <?php __("Do you really want to delete those users ?");?>
   <ul>
   <?php foreach($d as $t) {
-    echo "<li>$t</li>\n";
+    echo "<li><b>".ehe($t,false)."</b></li>\n";
   } ?>
   </ul>
 
   <form method="post" action="hta_dodeluser.php" name="main" id="main">
-    <input type='hidden' name='dir' value='<?php echo $dir;?>' >
+  <?php csrf_get(); ?>
+    <input type="hidden" name="dir" value="<?php ehe($dir); ?>" >
     <?php foreach($d as $t) {
-      echo "<input type='hidden' name='d[$t]' value='$t' >\n";
+    echo '<input type="hidden" name="d['.ehe($t,false).']" value="'.ehe($t,false).'" >'."\n";
     } ?>
     <input type="submit" class="inb" name="confirm_del" value="<?php __("Delete")?>" />
     <input type="button" class="inb" name="cancel" value="<?php __("Cancel"); ?>" onclick="document.location='/hta_edit.php?dir=<?php echo urlencode($dir);?>'" />

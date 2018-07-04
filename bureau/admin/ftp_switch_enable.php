@@ -1,10 +1,6 @@
 <?php
 /*
  ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2000-2012 by the AlternC Development Team.
- https://alternc.org/
- ----------------------------------------------------------------------
  LICENSE
 
  This program is free software; you can redistribute it and/or
@@ -21,6 +17,11 @@
  ----------------------------------------------------------------------
 */
 
+/**
+ * Enable a FTP account
+ *
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
 
 require_once("../class/config.php");
 
@@ -31,6 +32,11 @@ $fields = array (
 
 getFields($fields);
 
-$ftp->switch_enabled($id,$status);
+if ($ftp->switch_enabled($id,$status)) {
+  if ($status) 
+    $msg->raise("INFO", "ftp", _("The FTP account is enabled"));
+  else
+    $msg->raise("INFO", "ftp", _("The FTP account is disabled"));
+}
 
 require_once('ftp_list.php');

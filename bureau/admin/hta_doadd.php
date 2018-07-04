@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: hta_doadd.php,v 1.1.1.1 2003/03/26 17:41:29 root Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,31 +15,29 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Franck Missoum
- Purpose of file: Protect a folder
- ----------------------------------------------------------------------
 */
+
+/** 
+ * Protects a folder using a .htaccess / .htpasswd pair for apache2
+ *
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 
-
 $fields = array (
-	"dir"     => array ("request", "string", ""),
+	"dir"     => array ("post", "string", ""),
 );
 getFields($fields);
 
 if(empty($dir)) {
-	$error=_("No directory specified");
+	$msg->raise("ERROR", "hta", _("No directory specified"));
 	include("hta_list.php");
-	exit();
-}
-
-if(!$hta->CreateDir($dir)) {
-	$error=$err->errstr();
+} else if(!$hta->CreateDir($dir)) {
+	$is_include=true;
 	include("hta_add.php");
-	exit();
+} else {
+	$msg->raise("INFO", "hta", _("Folder %s is protected"), $dir);
+	include("hta_list.php");
 }
-
-include("hta_list.php");
-exit();
-
 ?>

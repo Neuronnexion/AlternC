@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: bro_pref.php,v 1.2 2003/06/10 06:45:16 root Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,10 +15,14 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Benjamin Sonntag
- Purpose of file: Configuration of the file browser
- ----------------------------------------------------------------------
 */
+
+/**
+ * Form to set the preferences of the file browser of AlternC
+ *
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/
+ */
+
 require_once("../class/config.php");
 
 $fields = array (
@@ -46,7 +42,7 @@ getFields($fields);
 
 if (!empty($submit)) {
 	$bro->SetPrefs($editsizex, $editsizey, $listmode, $showicons, $downfmt, $createfile, $showtype, $editor_font, $editor_size, $golastdir);
-	$error=_("Your preferences have been updated.");
+	$msg->raise("INFO", "bro", _("Your preferences have been updated."));
 	include("bro_main.php");
 	exit;
 }
@@ -60,7 +56,7 @@ include_once("head.php");
 <hr id="topbar"/>
 <br />
 <form action="bro_pref.php" method="post">
-
+  <?php csrf_get(); ?>
 
 <table cellpadding="6" border="1" cellspacing="0" class='tedit'>
 <tr><th><?php __("Horizontal window size"); ?></th><td><select class="inl" name="editsizex">

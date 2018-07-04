@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: sql_list.php,v 1.8 2006/02/16 16:26:28 benjamin Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,10 +15,14 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Benjamin Sonntag
- Purpose of file: Manage the MySQL database of a member
- ----------------------------------------------------------------------
 */
+
+/** 
+ * List and manage the MySQL databases of an account
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/
+ */
+
 require_once("../class/config.php");
 include_once("head.php");
 
@@ -38,20 +34,23 @@ $r=$mysql->get_userslist();
 <hr id="topbar"/>
 <br />
 <?php
-	if (isset($error) && $error) {
-		echo "<p class=\"alert alert-danger\">$error</p>";
-	}
-  if(!$r || empty($r)){
-    echo "<p class=\"alert alert-info\">"._("You have no sql user at the moment.")."</p>";  
+  // If the db exists, we look at users 
+  if (!$rdb || empty($rdb)) {
+	$msg->raise("INFO", "mysql", _("You have no database at the moment."));
+  } else if(!$r || empty($r)){
+	$msg->raise("INFO", "mysql", _("You have no sql user at the moment."));
   }
+
+echo $msg->msg_html_all();
 ?>
 
 <?php
 if($rdb){
 ?>
 <form method="post" action="sql_del.php" name="main" id="main">
+    <?php csrf_get(); ?>
 <table class="tlist">
-   <tr><th>&nbsp;</th><th><?php __("Database"); ?></th><?php if ( variable_get('sql_allow_users_backups') ) { ?><th><?php __("Backup"); ?></th><?php } // sql_allow_users_backups ?><th><?php __("Restore"); ?></th><th><?php __("Show Settings"); ?></th><th><?php __("Size"); ?></th></tr>
+   <tr><th>&nbsp;</th><th><?php __("Database"); ?></th><?php if ( variable_get('sql_allow_users_backups') ) { ?><th><?php __("Backup"); ?></th><?php } ?><th><?php __("Restore"); ?></th><th><?php __("Show Settings"); ?></th><th><?php __("Size"); ?></th></tr>
 
 <?php
 for($i=0;$i<count($rdb);$i++) {
@@ -62,10 +61,10 @@ for($i=0;$i<count($rdb);$i++) {
 		<td align="center"><input type="checkbox" class="inc" id="del_<?php echo $val["db"]; ?>" name="del_<?php echo $val["db"]; ?>" value="<?php echo ($val["db"]); ?>" /></td>
 	   	<td><label for="del_<?php echo $val["db"]; ?>"><?php echo $val["db"]; ?></label></td>
 <?php if ( variable_get('sql_allow_users_backups') ) { ?>
-		<td><div class="ina down"><a href="sql_bck.php?id=<?php echo $val["db"] ?>"><?php __("Backup"); ?></a></div></td>
+		<td><div class="ina backup"><a href="sql_bck.php?id=<?php echo $val["db"] ?>"><?php __("Backup"); ?></a></div></td>
 <?php } // sql_allow_users_backups ?>
-		<td><div class="ina up"><a href="sql_restore.php?id=<?php echo $val["db"] ?>"><?php __("Restore"); ?></a></div></td>
-		<td><div class="ina configure"><a href="sql_getparam.php?dbname=<?php echo $val["db"] ?>"><?php __("Show Settings"); ?></a></div></td>
+		<td><div class="ina restore"><a href="sql_restore.php?id=<?php echo $val["db"] ?>"><?php __("Restore"); ?></a></div></td>
+		<td><div class="ina settings"><a href="sql_getparam.php?dbname=<?php echo $val["db"] ?>"><?php __("Show Settings"); ?></a></div></td>
 		<td><code><?php echo format_size($val["size"]); ?></code></td>
 	</tr>
 <?php
@@ -73,8 +72,8 @@ for($i=0;$i<count($rdb);$i++) {
 
  }
 ?>
-<tr><td colspan="5">
-   <input type="submit" name="sub" value="<?php __("Delete the checked databases"); ?>" class="inb delete" />
+<tr><td colspan="6">
+   <button type="submit" name="sub" class="inb delete"><?php __("Delete the checked databases"); ?></button>
 </td></tr>
 </table>
 </form>
@@ -91,13 +90,14 @@ for($i=0;$i<count($rdb);$i++) {
 <?php }else{
 ?>
 <form method="post" action="sql_doadd.php" id="main2" name="main2">
+   <?php csrf_get(); ?>
 <table class="tedit">
 <tr>
   <th><label for="dbn"><?php __("MySQL Database"); ?></label></th>
   <td>
     <?php 
-    // Max 16 caracters for the database name if we want the mysql user to be automatically created.
-    $max_dbsufix_size=(16-strlen($mem->user["login"].'_'));
+    // Set a maximum length for the database name if we want the mysql user to be automatically created.
+    $max_dbsufix_size=(variable_get("sql_max_database_length", 16)-strlen($mem->user["login"].'_'));
     ?>
 	<span class="int" id="dbnpfx"><?php echo $mem->user["login"]; ?>_</span><input type="text" class="int" name="dbn" id="dbn" value="" size="20" maxlength="<?php echo $max_dbsufix_size ;?>" />
   </td>
@@ -110,8 +110,4 @@ for($i=0;$i<count($rdb);$i++) {
 }
 }
 ?>
-<script type="text/javascript">
-//document.forms['main'].pass.focus();
-//document.forms['main'].setAttribute('autocomplete', 'off');
-</script>
 <?php include_once("foot.php"); ?>

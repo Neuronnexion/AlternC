@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: bro_editor.php,v 1.5 2005/05/03 14:49:06 anarcat Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,11 +15,18 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Benjamin Sonntag
- Purpose of file: Editor of the browser
- ----------------------------------------------------------------------
 */
-require_once("../class/config.php");
+
+/**
+ * File editor part of AlternC file manager / browser.
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/  
+ */
+
+ require_once("../class/config.php");
+
+// We check it ourself : not fatal
+define("NOCSRF",true);
 
 $fields = array (
 	"editfile"    		=> array ("request", "string", ""),
@@ -39,6 +38,7 @@ $fields = array (
 );
 getFields($fields);
 
+$editing=false;
 $editfile=ssla($editfile);
 $texte=ssla($texte);
 
@@ -51,28 +51,40 @@ if (isset($cancel) && $cancel) {
 }
 
 if (isset($saveret) && $saveret) {
-  if ($bro->save($editfile,$R,$texte)) {
-    $error=sprintf(_("Your file %s has been saved"),$editfile)." (".format_date(_('%3$d-%2$d-%1$d %4$d:%5$d'),date("Y-m-d H:i:s")).")";
-  } else {
-    $error=$err->errstr();
-  }
-  include("bro_main.php");
-  exit();
+    $editing=true;
+
+    // Thanks to this, we bring you back to the EDIT form if the CSRF is invalid.
+    // Allows you to re-submit
+    // FIXME - doesn't work
+/*    $csrf_check=false;
+    if (count($_POST) && !defined("NOCSRF")) {
+        if (csrf_check()<=0) {
+            $csrf_check = true;
+        }
+    }*/
+    
+    if ($bro->save($editfile,$R,$texte)) {
+        $msg->raise("INFO", "bro", _("Your file %s has been saved")." (".format_date(_('%3$d-%2$d-%1$d %4$d:%5$d'),date("Y-m-d H:i:s")).")", $editfile);
+        include("bro_main.php");
+        exit();
+    }
 }
 if (isset($save) && $save) {
   if ($bro->save($editfile,$R,$texte)) {
-    $error=sprintf(_("Your file %s has been saved"),$editfile)." (".format_date(_('%3$d-%2$d-%1$d %4$d:%5$d'),date("Y-m-d H:i:s")).")";
-  } else {
-    $error=$err->errstr();
+    $msg->raise("INFO", "bro", _("Your file %s has been saved")." (".format_date(_('%3$d-%2$d-%1$d %4$d:%5$d'),date("Y-m-d H:i:s")).")", $editfile);
   }
 }
 
+$addhead['css'][]='<link rel="stylesheet" href="/javascript/prettify/prettify.css" type="text/css" />';
+$addhead['js'][]='<script src="/javascript/prettify/prettify.js" type="text/javascript"></script>'
 include_once("head.php");
 
 ?>
 <p>
-<?php if (isset($error) && $error) echo "<p class=\"alert alert-danger\">$error</p>"; ?>
-<h3><?php echo _("File editing")." <code>$R/<b>$editfile</b></code><br />"; ?></h3>
+<?php
+echo $msg->msg_html_all();
+?>
+<h3><?php echo _("File editing")." <code>".ehe($R,false)."/<b>".ehe($editfile,false)."</b></code><br />"; ?></h3>
 </p>
 
 <?php
@@ -80,6 +92,7 @@ $content=$bro->content($R,$editfile);
 ?>
 
 <form action="bro_editor.php" method="post"><br />
+  <?php csrf_get(); ?>
 <div id="tabsfile">
   <ul>
     <li class="view"><a href="#tabsfile-view"><?php __("View"); ?></a></li>
@@ -104,8 +117,8 @@ echo "<pre class='prettyprint' id='file_content_view' >$content</pre>";
 </div><!-- tabsfile -->
 <br/>
 <?php if (!empty($error)) echo "<p class=\"alert alert-danger\">".$error."</p>"; ?>
-	<input type="hidden" name="editfile" value="<?php echo str_replace("\"","&quot;",$editfile); ?>" />
-	<input type="hidden" name="R" value="<?php echo str_replace("\"","&quot;",$R); ?>" />
+	<input type="hidden" name="editfile" value="<?php ehe($editfile); ?>" />
+	<input type="hidden" name="R" value="<?php ehe($R); ?>" />
 
 	<input type="submit" class="inb" value="<?php __("Save"); ?>" name="save" />
 	<input type="submit" class="inb" value="<?php __("Save &amp; Quit"); ?>" name="saveret" />
@@ -114,13 +127,19 @@ echo "<pre class='prettyprint' id='file_content_view' >$content</pre>";
 </form>
 
 <script type="text/javascript">
-$(function() {$( "#tabsfile" ).tabs();});
+$(function() {
+    prettyPrint();
+    $( "#tabsfile" ).tabs();
+<?php if ($editing) { ?>
+    $( "#tabsfile-edit" ).tabs( "option", "active", 1 );
+<?php } ?>
+});
 
 $('#tabsfile').on('tabsbeforeactivate', function(event, ui){
-  var b = $('#file_content_editor').val();
-  $('#file_content_view').text( b );
-  $('#file_content_view').removeClass('prettyprinted');
-  PR.prettyPrint();
+    var b = $('#file_content_editor').val();
+    $('#file_content_view').text( b );
+    $('#file_content_view').removeClass('prettyprinted');
+    PR.prettyPrint();
 });
 </script>
 

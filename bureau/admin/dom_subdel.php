@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: dom_subdel.php,v 1.3 2003/08/13 23:31:47 root Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,10 +15,14 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Benjamin Sonntag
- Purpose of file: delete a subdomain
- ----------------------------------------------------------------------
 */
+
+/**
+ * Form to confirm the deletion of a subdomain
+ *
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 include_once("head.php");
 
@@ -36,22 +32,21 @@ $fields = array (
 getFields($fields);
 
 $dom->lock();
-if (!$r=$dom->get_sub_domain_all($sub_domain_id)) {
-  $error=$err->errstr();
-}
+$r=$dom->get_sub_domain_all($sub_domain_id);
 $dom->unlock();
 
 $dt=$dom->domains_type_lst();
 if (!$isinvited && $dt[strtolower($r['type'])]["enable"] != "ALL" ) {
-  __("This page is restricted to authorized staff");
+  $msg->raise("ERROR", "dom", _("This page is restricted to authorized staff"));
+  echo $msg->msg_html_all();
   exit();
 }
 
 ?>
 <h3><?php printf(_("Deleting subdomain %s"),ife($r['name'],$r['name'].".").$r['domain']); ?> : </h3>
 <?php
-if (isset($error) && $error) {
-  echo "<p class=\"alert alert-danger\">$error</p>";
+if ($msg->has_msgs("ERROR")) {
+  echo $msg->msg_html_all();
   include_once("foot.php");
   exit();
 }
@@ -59,8 +54,9 @@ if (isset($error) && $error) {
 <hr id="topbar"/>
 <br />
 <form action="dom_subdodel.php" method="post">
+  <?php csrf_get(); ?>
   <p class="alert alert-warning">
-    <input type="hidden" name="sub_domain_id" value="<?php echo $sub_domain_id ?>" />
+    <input type="hidden" name="sub_domain_id" value="<?php ehe($sub_domain_id); ?>" />
     <?php __("WARNING : You are going to delete a sub-domain."); ?></p>
     <p><?php 
       __("Informations about the subdomain you're going to delete:");
@@ -77,7 +73,7 @@ if (isset($error) && $error) {
     </p>
     <blockquote>
       <input type="submit" class="inb" name="confirm" value="<?php __("Yes"); ?>" />&nbsp;&nbsp;
-      <input type="button" class="inb" name="cancel" value="<?php __("No"); ?>" onclick="history.back();" />
+      <span class="ina"><a href="dom_edit.php?domain=<?php echo urlencode($r['domain']) ?>"><?php __("No"); ?></a></span></p>
     </blockquote>
 </form>
 <?php include_once("foot.php"); ?>

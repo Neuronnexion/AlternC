@@ -1,10 +1,6 @@
 <?php
 /*
  ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2000-2012 by the AlternC Development Team.
- https://alternc.org/
- ----------------------------------------------------------------------
  LICENSE
 
  This program is free software; you can redistribute it and/or
@@ -19,9 +15,15 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Purpose of file: Main page shown after login, display misc information
- ----------------------------------------------------------------------
 */
+
+/**
+ * Main page shown after a successful login of an account
+ * Displays misc informations
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/
+ */
+
 require_once("../class/config.php");
 
 include_once("head.php");
@@ -42,6 +44,7 @@ if ($mem->user["lastfail"]) {
 	printf(_("%1\$d login failed since last login")."<br />",$mem->user["lastfail"]);
 }
 
+echo $msg->msg_html_all();
 if (!empty($error) ) { echo "<p class='alert alert-danger'>$error</p>";$error=''; } 
 
 $feed_url = variable_get('rss_feed', '', 'This is an RSS feed that will be displayed on the users homepages when they log in.', array('desc'=>'URL','type'=>'string'));
@@ -106,12 +109,17 @@ if($admin->enabled) {
   echo "</p>";
 } // if $admin->enabled
 
-$c = $admin->get($cuid);
-
-define("QUOTASONE","1");
-echo "<hr/>";
-require_once("quotas_oneuser.php");
-
+$blocks=$hooks->invoke("hook_homepageblock");
+uasort($blocks, function($a, $b) {return $a->pos<$b->pos ? -1 : 1;});
+foreach ($blocks as $v) {
+	if (property_exists($v, "call")) {
+		$func=$v->call;
+		$func();
+	}
+	if (property_exists($v, "include")) {
+		include $v->include;
+	}
+}
 
 ?>
 <?php include_once("foot.php"); ?>

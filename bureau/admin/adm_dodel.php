@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: adm_dodel.php,v 1.2 2004/05/19 14:23:06 benjamin Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,41 +15,47 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Benjamin Sonntag
- Purpose of file: Delete a member
- ----------------------------------------------------------------------
 */
+
+/**
+ * Delete one or more AlternC's accounts
+ * of course, confirm the deletion
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 
 if (!$admin->enabled) {
-  __("This page is restricted to authorized staff");
+  $msg->raise("ERROR", "admin", _("This page is restricted to authorized staff"));
+  echo $msg->msg_html_all();
   exit();
 }
 
 $fields = array (
-		 "accountList" => array ("request", "array", array()),
-		 "del_confirm" => array("request", "string", ""),
+		 "accountList" => array ("post", "array", array()),
+		 "del_confirm" => array("post", "string", ""),
 );
 getFields($fields);
 
 if($del_confirm == "y"){
-  $error = "";
   foreach ($accountList as $key => $val) {
     if (!$admin->checkcreator($val)) {
-      __("This page is restricted to authorized staff");
+      $msg->raise("ERROR", "admin", _("This page is restricted to authorized staff"));
+      echo $msg->msg_html_all();
       exit();
     }
     if (!($u=$admin->get($val)) || !$admin->del_mem($val)) {
-      $error .= sprintf(_("Member '%s' does not exist"),$val)."<br />";
+      $msg->raise("ERROR", "admin", _("Member '%s' does not exist"),$val);
     } else {
-      $error .= sprintf(_("Member %s successfully deleted"),$u["login"])."<br />";
+      $msg->raise("INFO", "admin", _("Member %s successfully deleted"),$u["login"]);
     }
   }
   include("adm_list.php");
   exit();
 } else {
   if (!is_array($accountList) || count($accountList)==0) {
-    $error=_("Please check the accounts you want to delete");
+    $msg->raise("ERROR", "admin", _("Please check the accounts you want to delete"));
     require("adm_list.php");
     exit();
   } 
@@ -67,6 +65,7 @@ if($del_confirm == "y"){
     <body>
     <h3><?php printf(_("Deleting users")); ?> : </h3>
     <form action="adm_dodel.php" method="post">
+ <?php csrf_get(); ?>
       <input type="hidden" name="action" value="delete" />
       <input type="hidden" name="del_confirm" value="y" />
       <p class="alert alert-warning"><?php __("WARNING : Confirm the deletion of the users"); ?></p>

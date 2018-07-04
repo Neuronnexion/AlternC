@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: ftp_doedit.php,v 1.3 2006/01/12 01:10:48 anarcat Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,10 +15,14 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Benjamin Sonntag
- Purpose of file: Editing an ftp account
- ----------------------------------------------------------------------
 */
+
+/**
+ * change settings of an FTP account
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 $fields = array (
   "id"        => array ("post", "integer", ""),
@@ -39,17 +35,8 @@ $fields = array (
 );
 getFields($fields);
 
-
-if ($pass != $passconf) {
-  $error = _("Passwords do not match");
-  include_once("head.php");
-  echo "<h3>"._("Create a FTP account")."</h3><p class=\"alert alert-danger\">$error</p>";
-  include("foot.php");
-  exit();
-}
-
 if (! $id && !$create) { //not a creation and not an edit
-  $error=_("Error: neither a creation nor an edition");
+  $msg->raise("ERROR", "ftp", _("Error: neither a creation nor an edition"));
   include("ftp_list.php");
   exit();
 }
@@ -61,7 +48,6 @@ if (! $id ) { //create
 }
 
 if (!$r) {
-  $error=$err->errstr();
   $is_include=true;
   $rr[0]["prefixe"]=$prefixe;
   $rr[0]["login"]=$login;
@@ -69,7 +55,11 @@ if (!$r) {
   include_once("ftp_edit.php");
   exit();
 } else {
-  $error=_("The ftp account has been successfully saved");
+  if ($create)
+    $msg->raise("INFO", "ftp", _("The FTP account has been successfully created"));
+  else
+    $msg->raise("INFO", "ftp", _("The FTP account has been successfully saved"));
+
   include("ftp_list.php");
   exit();
 }

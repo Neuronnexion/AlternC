@@ -1,10 +1,6 @@
 <?php
 /*
  ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2000-2012 by the AlternC Development Team.
- https://alternc.org/
- ----------------------------------------------------------------------
  LICENSE
 
  This program is free software; you can redistribute it and/or
@@ -19,32 +15,34 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Purpose of file: Edit mail account settings
- ----------------------------------------------------------------------
 */
 
+/**
+ * edit an email account settings
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
 
 require_once("../class/config.php");
 
 $fields = array (
-		 "mail_id" =>array ("request","integer",""),
-		 "pass" => array ("request","string",""),
-		 "passconf" => array("request","string",""),
-		 "quotamb" => array("request","integer",0),
-		 "enabled" => array("request","boolean",true),
-		 "islocal" => array("request","boolean",true),
-		 "recipients" => array("request","string",""),
+		 "mail_id" =>array ("post","integer",""),
+		 "new_account" =>array ("post","integer",""),
+		 "pass" => array ("post","string",""),
+		 "passconf" => array("post","string",""),
+		 "quotamb" => array("post","integer",0),
+		 "enabled" => array("post","boolean",true),
+		 "islocal" => array("post","boolean",true),
+		 "recipients" => array("post","string",""),
 		 );
 
 getFields($fields);
 
 $isedit=true; // if we go back to edit, it will know ;)
-$error="";
 
 // We check that email first ... so that we can compare its status with our ...
 if (!$res=$mail->get_details($mail_id)) {
-  $error=$err->errstr();
-  include("main.php");
+  include("mail_list.php");
   exit();
 } else {
   
@@ -52,21 +50,27 @@ if (!$res=$mail->get_details($mail_id)) {
   /*
    * checking the password
    */
-  if(isset($pass) && $pass != ""){
-    if($pass != $passconf){
-      $error = _("Passwords do not match");
-      include ("mail_edit.php");
-      exit();
-    } else {
-      if (!$mail->set_passwd($mail_id,$pass)) { /* SET THE PASSWORD */
-	$error=$err->errstr();
-	include ("mail_edit.php");
-	exit();
-      } else {
-	$error.=$err->errstr()."<br />";
+  if($pass != $passconf){
+    $msg->raise("ERROR", "mail", _("Passwords do not match"));
+    include ("mail_edit.php");
+    exit();
+  } else {
+    $canbeempty = ($islocal != 1 || ($islocal == 1 && !$new_account))?true:false;
+    if ($new_account || !empty($pass) || $islocal != 1) {
+      if ($islocal != 1)
+        $pass = ""; 
+
+      if (!$mail->set_passwd($mail_id,$pass,$canbeempty)) { /* SET THE PASSWORD */
+        include ("mail_edit.php");
+        exit();
       }
-    }	
-  }
+    } else if (!$new_account && empty($pass) && $islocal == 1 && $res['password'] == "") {
+      if (!$mail->set_passwd($mail_id,$pass, false)) { /* SET THE PASSWORD */
+        include ("mail_edit.php");
+        exit();
+      }
+    }
+  }	
 
 
   /* 
@@ -74,20 +78,14 @@ if (!$res=$mail->get_details($mail_id)) {
    */
   if ($res["enabled"] && !$enabled) {
     if (!$mail->disable($mail_id)) { /* DISABLE */
-      $error=$err->errstr();
       include ("mail_edit.php");
       exit();
-    } else {
-      $error.=$err->errstr()."<br />";
     }
   }
   if (!$res["enabled"] && $enabled) {
     if (!$mail->enable($mail_id)) { /* ENABLE */
-      $error=$err->errstr();
       include ("mail_edit.php");
       exit();
-    } else {
-      $error.=$err->errstr()."<br />";
     }
   }
 
@@ -96,11 +94,8 @@ if (!$res=$mail->get_details($mail_id)) {
    * now the islocal + quota + recipients 
    */
   if (!$mail->set_details($mail_id,$islocal,$quotamb,$recipients)) { /* SET OTHERS */
-    $error=$err->errstr();
     include ("mail_edit.php");
     exit();
-  } else {
-    $error.=$err->errstr()."<br />";
   }
 
 
@@ -108,16 +103,19 @@ if (!$res=$mail->get_details($mail_id)) {
    * Other elements by hooks
    */
   $rh=$hooks->invoke("mail_edit_post",array($mail_id));
-  if (in_array(false,$res,true)) {
+  if (in_array(false,$rh,true)) {
     include ("mail_edit.php");
     exit();
   } else {
-    foreach($rh as $h) if ($h) $error.=$h."<br />";
+    foreach($rh as $h) if ($h) $msg->raise("ERROR", "mail", $h);
   }
 
 } 
 
-if (!$error || !trim($error,"<br />")) $error=_("Your email has been edited successfully");
+if ($new_account)
+  $msg->raise("INFO", "mail", _("Your email has been created successfully"));
+else
+  $msg->raise("INFO", "mail", _("Your email has been edited successfully"));
 
 $_REQUEST["domain_id"]=$dom->get_domain_byname($res["domain"]);
 include("mail_list.php");

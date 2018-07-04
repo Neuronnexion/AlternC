@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: adm_tld.php,v 1.4 2004/11/29 17:27:04 anonymous Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,19 +15,24 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Alan Garcia
- Purpose of file: Manage domain types on the server 
- ----------------------------------------------------------------------
 */
+
+/**
+ * Lock the panel, allowing no access to it, except by admins
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 
 if (!$admin->enabled || $cuid!=2000) {
-    __("This page is restricted to authorized staff");
+    $msg->raise("ERROR", "admin", _("This page is restricted to authorized staff"));
+    echo $msg->msg_html_all();
     die();
 }
 
 $fields = array (
-		 "action" =>array ("get","string",""),
+     "action" =>array ("get","string",""),
 );
 
 getFields($fields);

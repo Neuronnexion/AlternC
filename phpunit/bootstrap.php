@@ -1,5 +1,4 @@
 <?php
-
 // *****************************************************************************
 // 
 // Alternc bootstrapping                  
@@ -21,7 +20,7 @@ define('ALTERNC_PANEL',realpath(__DIR__."/../bureau"));; // Custom
 define('PHPUNIT_DATASETS_PATH',realpath(__DIR__."/tests/_datasets"));
 require_once ALTERNC_PANEL."/class/db_mysql.php";
 require_once ALTERNC_PANEL."/class/functions.php";
-
+require_once ALTERNC_PANEL."/class/variables.php";
 
 // General variables setup
 // *********************
@@ -133,20 +132,11 @@ foreach ($mysqlConfigFile as $line) {
 * This class heriting from the db class of the phplib manages
 * the connection to the MySQL database.
 */
-class DB_system extends DB_Sql {
-    var $Host,$Database,$User,$Password;
-    /**
-        * Constructor
-        */
-    function DB_system($user,$database,$password) {
-        global $L_MYSQL_HOST,$L_MYSQL_DATABASE,$L_MYSQL_LOGIN,$L_MYSQL_PWD;
-        $this->Host                     = "127.0.0.1";
-        $this->Database                 = $database;
-        $this->User                     = $user;
-        $this->Password                 = $password;
-    }
-}
-
+class DB_system extends DB_Sql { 
+  function __construct($database, $user, $password) { 
+    parent::__construct($database, '127.0.0.1', $user, $password);
+  } 
+} 
 
 // Creates database from schema 
 // *********************************************
@@ -165,20 +155,9 @@ foreach ($queryList as $exec_command) {
 }
 echo "*** In progress: mysql.sql imported\n";
 
-global $db;
-global $cuid;
-global $variables;
-global $err;
-global $mem;
-global $admin;
-global $mysql;
-global $ftp;
-global $quota;
-global $db;
-$db                                     = new \DB_system($user,$database,$password);
-$db->connect();
+$db                                     = new \DB_system($database, $user, $password);
 $cuid                                   = 0;
-$variables                              = new \m_variables();
+$msg                                    = new \m_messages();
 $mem                                    = new \m_mem();
 $err                                    = new \m_err();
 $authip                                 = new \m_authip();

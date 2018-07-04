@@ -1,15 +1,5 @@
 <?php
 /*
- $Id: adm_edit.php,v 1.13 2006/01/24 05:03:30 joe Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2006 Le r�seau Koumbit Inc.
- http://koumbit.org/
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -25,15 +15,20 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Benjamin Sonntag
- Purpose of file: Show a form to edit a member
- ----------------------------------------------------------------------
 */
+
+/**
+ * Show a form to edit an account
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 include_once("head.php");
 
 if (!$admin->enabled) {
-	__("This page is restricted to authorized staff");
+	$msg->raise("ERROR", "admin", _("This page is restricted to authorized staff"));
+	echo $msg->msg_html_all();
 	exit();
 }
 
@@ -45,24 +40,26 @@ getFields($fields);
 $subadmin=variable_get("subadmin_restriction");
 
 if ($subadmin==0 && !$admin->checkcreator($uid)) {
-	__("This page is restricted to authorized staff");
+	$msg->raise("ERROR", "admin", _("This page is restricted to authorized staff"));
+	echo $msg->msg_html_all();
 	exit();
 }
 
-if (!$r=$admin->get($uid)) {
-	$error=$err->errstr();
-}
+$r=$admin->get($uid);
+
+$c=$admin->listPasswordPolicies();
+$passwd_classcount = $c['adm']['classcount'];
 
 ?>
 <h3><?php __("Member Edition"); ?></h3>
 <hr id="topbar"/>
 <br />
 <?php
-  if (isset($error) && $error) {
-    echo "<p class=\"alert alert-danger\">$error</p>";
-  }
+echo $msg->msg_html_all();
 ?>
-<form method="post" action="adm_doedit.php" name="main" id="main">
+<form method="post" action="adm_doedit.php" name="main" id="main" autocomplete="off">
+  <?php csrf_get(); ?>
+
 <table class="tedit">
 <tr>
 	<th><input type="hidden" name="uid" value="<?php echo $uid ?>" />
@@ -83,11 +80,11 @@ if (!$r=$admin->get($uid)) {
 
 <tr>
 	<th><label for="pass"><?php __("Password"); ?></label></th>
-	<td><input type="password" class="int" id="pass" name="pass" value="" size="20" maxlength="64" /><?php display_div_generate_password(DEFAULT_PASS_SIZE,"#pass","#passconf"); ?></td>
+	<td><input type="password" class="int" id="pass" autocomplete="off" name="pass" value="" size="20" maxlength="64" /><?php display_div_generate_password(DEFAULT_PASS_SIZE,"#pass","#passconf",$passwd_classcount); ?></td>
 </tr>
 <tr>
 	<th><label for="passconf"><?php __("Confirm password"); ?></label></th>
-	<td><input type="password" class="int" id="passconf" name="passconf" value="" size="20" maxlength="64" /></td>
+	<td><input type="password" class="int" id="passconf" autocomplete="off" name="passconf" value="" size="20" maxlength="64" /></td>
 </tr>
 <tr>
 	<th><label><?php __("Password change allowed?"); ?></label></th>
@@ -131,6 +128,7 @@ if (!$r=$admin->get($uid)) {
 
 <?php if($r['duration']) { ?>
 <form method="post" action="adm_dorenew.php">
+   <?php csrf_get(); ?>
 <input type="hidden" name="uid" value="<?php echo $uid ?>" />
 <table border="1" cellspacing="0" cellpadding="4" class="tedit">
 <tr>
@@ -143,7 +141,7 @@ if (!$r=$admin->get($uid)) {
 </tr>
 </table>
 </form>
-<?php } /* Renouvellement */ ?>
+<?php } /* Renewal */ ?>
 
 <p>
 <?php
@@ -173,6 +171,5 @@ if ($c=$admin->get($r["creator"])) {
 </p>
 <script type="text/javascript">
  document.forms['main'].pass.focus();
- document.forms['main'].setAttribute('autocomplete', 'off');
 </script>
 <?php include_once("foot.php"); ?>

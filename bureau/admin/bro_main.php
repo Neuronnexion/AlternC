@@ -1,13 +1,5 @@
 <?php
 /*
-   $Id: bro_main.php,v 1.11 2004/09/06 18:14:36 anonymous Exp $
-   ----------------------------------------------------------------------
-   AlternC - Web Hosting System
-   Copyright (C) 2002 by the AlternC Development Team.
-   http://alternc.org/
-   ----------------------------------------------------------------------
-   Based on:
-   Valentin Lacambre's web hosting softwares: http://altern.org/
    ----------------------------------------------------------------------
    LICENSE
 
@@ -23,34 +15,47 @@
 
    To read the license please visit http://www.gnu.org/copyleft/gpl.html
    ----------------------------------------------------------------------
-   Original Author of file: Benjamin Sonntag, Remi
-   Purpose of file: Online file Browser of AlternC
-   TODO : Voir ??? + D�placer / Copier 
-   ----------------------------------------------------------------------
  */
-require_once("../class/config.php");
+
+/**
+ * A file browser / manager for AlternC
+ * Warning: complex spaghetti-style code below.
+ * allow an account user to browse files, move, copy, upload, rename,
+ * and set permissions
+ * also, uncompress tarballs and zips, and import SQL files
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/  
+ */
+
+ require_once("../class/config.php");
 include_once ("head.php");
 
 $fields = array (
     "R"           => array ("request", "string", ""),
-    "o"           => array ("request", "array", ""),
-    "d"           => array ("request", "array", ""),
+    "o"           => array ("request", "array", array()),
+    "d"           => array ("request", "array", array()),
     "perm"        => array ("post",    "array", array()),
-    "formu"       => array ("request", "integer", ""),
+    "formu"       => array ("post", "integer", ""),
     "actextract"  => array ("request", "string", ""),
     "fileextract" => array ("request", "string", ""),
-    "actperms"    => array ("request", "string", ""),
-    "actdel"      => array ("request", "string", ""),
-    "actcopy"     => array ("request", "string", ""),
-    "actrename"   => array ("request", "string", ""),
-    "actmove"     => array ("request", "string", ""),
-    "actmoveto"   => array ("request", "string", ""),
-    "nomfich"     => array ("request", "string", ""),
+    "actperms"    => array ("post", "string", ""),
+    "actdel"      => array ("post", "string", ""),
+    "actcopy"     => array ("post", "string", ""),
+    "actrename"   => array ("post", "string", ""),
+    "actmove"     => array ("post", "string", ""),
+    "actmoveto"   => array ("post", "string", ""),
+    "nomfich"     => array ("post", "string", ""),
     "del_confirm" => array ("request", "string", ""),
     "cancel"      => array ("request", "string", ""),
     "showdirsize" => array ("request", "integer", "0"),
-    "nomfich"     => array ("request", "string", ""),
+    "nomfich"     => array ("post", "string", ""),
     );
+
+## does not intend to edit oversize files.
+$memory_limit=ini_get("memory_limit");
+if (preg_match("#([mk])#i", $memory_limit, $out))
+	$memory_limit=$memory_limit*1024*($out[1]=="M"?1024:1);
+
 getFields($fields);
 
 $p=$bro->GetPrefs();
@@ -61,16 +66,17 @@ if (!$R && $p["golastdir"]) {
 $R=$bro->convertabsolute($R,1);
 // on fait ?
 if (!empty($formu) && $formu) {
+  $absolute = $bro->convertabsolute($R, false);
   switch ($formu) {
-    case 1:  // Cr�er le r�pertoire $R.$nomfich
-      if (!$bro->CreateDir($R,$nomfich)) {
-        $error = $err->errstr();
+    case 1:  // Create the folder $R.$nomfich
+      if ($bro->CreateDir($R,$nomfich)) {
+        $msg->raise("INFO", "bro", _("The folder '%s' was successfully created"), $nomfich);
       }
       $p=$bro->GetPrefs();
       break;
-    case 6: // Cr�er le fichier $R.$nomfich
-      if (!$bro->CreateFile($R,$nomfich)) {
-        $error = $err->errstr();
+    case 6: // Create the file $R.$nomfich
+      if ($bro->CreateFile($R,$nomfich)) {
+        $msg->raise("INFO", "bro", _("The file '%s' was successfully created"), $nomfich);
       }
       $p=$bro->GetPrefs();
       if ($p["createfile"]==1) {
@@ -82,14 +88,20 @@ if (!empty($formu) && $formu) {
     case 2:  // act vaut Supprimer Copier ou Renommer.
       if ($actdel) {
         if (!empty($del_confirm) ) { 
-          if (!$bro->DeleteFile($d,$R)) {
-            $error = $err->errstr();
+          if ($bro->DeleteFile($d,$R)) {
+	    foreach ($d as $v) {
+	      if (is_dir($absolute . "/" . $v))
+                $msg->raise("INFO", "bro", _("The folder '%s' was successfully deleted"), $v);
+	      else
+                $msg->raise("INFO", "bro", _("The file '%s' was successfully deleted"), $v);
+	    }
           }
-        } elseif (empty($cancel) && is_array($d)) {
+        } elseif (empty($cancel) && count($d)) {
           include_once("head.php");
           ?>
             <h3><?php printf(_("Deleting files and/or directories")); ?> : </h3>
             <form action="bro_main.php" method="post" name="main" id="main">  
+ <?php csrf_get(); ?>
             <input type="hidden" name="formu" value="2" />
             <input type="hidden" name="actdel" value="1" />
             <input type="hidden" name="R" value="<?php ehe($R)?>" />
@@ -97,13 +109,13 @@ if (!empty($formu) && $formu) {
             <h2><?php echo $mem->user["login"].$R."/"; ?></h2>
             <ul>
             <?php foreach($d as $editfile){ ?>
-              <li> <?php echo stripslashes($editfile); ?></li>
-              <input type="hidden" name="d[]" value="<?php echo htmlentities(stripslashes($editfile)); ?>" />
+          <li><b> <?php ehe($editfile); ?></b></li>
+              <input type="hidden" name="d[]" value="<?php ehe($editfile); ?>" />
             <?php } ?>
             </ul>
                 <blockquote>
                 <input type="submit" class="inb ok" name="del_confirm" value="<?php __("Yes, delete those files/folders"); ?>" />&nbsp;&nbsp;
-          <input type="submit" class="inb cancel" name="cancel" value="<?php __("No, don't delete those files/folders"); ?>" />
+          <input type="submit" class="inb cancel" name="cancel" value="<?php __("No, don't delete those files/folders");  ?>" />
             </blockquote>
             </form>
             <?php
@@ -111,44 +123,56 @@ if (!empty($formu) && $formu) {
           exit();
         }
       }
-      if ($actcopy) {
-        if (!$bro->CopyFile($d,$R,$actmoveto)) {
-          $error = $err->errstr();
+      if ($actcopy && count($d)) {
+        if ($bro->CopyFile($d,$R,$actmoveto)) {
+	  if (count($d) == 1) {
+	    if (is_dir($absolute . "/" . $d[0]))
+	      $msg->raise("INFO", "bro", _("The folder '%s' was successfully copied to '%s'"), array($d[0], $actmoveto));
+	    else
+	      $msg->raise("INFO", "bro", _("The file '%s' was successfully copied to '%s'"), array($d[0], $actmoveto));
+	  } else
+            $msg->raise("INFO", "bro", _("The files / folders were successfully copied"));
         }
       }
-      if ($actmove) {
-        if (!$bro->MoveFile($d,$R,$actmoveto)) {
-          $error = $err->errstr();
+      if ($actmove && count($d)) {
+        if ($bro->MoveFile($d,$R,$actmoveto)) {
+	  if (count($d) == 1) {
+	    if (is_dir($absolute . "/" . $d[0]))
+	      $msg->raise("INFO", "bro", _("The folder '%s' was successfully moved to '%s'"), array($d[0], $actmoveto));
+	    else
+	      $msg->raise("INFO", "bro", _("The file '%s' was successfully moved to '%s'"), array($d[0], $actmoveto));
+	  } else
+            $msg->raise("INFO", "bro", _("The files / folders were successfully moved"));
         }
       }
       break;
     case 4:  // Renommage Effectif...
-      if (!$bro->RenameFile($R,$o,$d)) { // Rename $R (directory) $o (old) $d (new) names
-        $error = $err->errstr();
+      if ($bro->RenameFile($R,$o,$d)) { // Rename $R (directory) $o (old) $d (new) names
+	if (count($d) == 1) {
+	  if (is_dir($absolute . "/" . $d[0]))
+	    $msg->raise("INFO", "bro", _("The folder '%s' was successfully renamed to '%s'"), array($o[0], $d[0]));
+	  else
+	    $msg->raise("INFO", "bro", _("The file '%s' was successfully renamed to '%s'"), array($o[0], $d[0]));
+	} else
+          $msg->raise("INFO", "bro", _("The files / folders were successfully renamed"));
       } 
       break;
     case 3:  // Upload de fichier...
-      if (!$bro->UploadFile($R)) {
-        $error = $err->errstr();
+      if ($bro->UploadFile($R)) {
+        $msg->raise("INFO", "bro", _("The file '%s' was successfully uploaded"), $_FILES['userfile']['name']);
       }
       break;
     case 7:  // Changement de permissions [ML]
-      if (!@$bro->ChangePermissions($R, $d, $perm)) {
-        $error = $err->errstr();
+      if ($bro->ChangePermissions($R, $d, $perm)) {
+	$msg->raise("INFO", "bro", _("The permissions were successfully set"));
       }
       break;
   }
 }
 
 if (isset($actextract) && $actextract) {
-  print _("extracting...")."<br />\n"; flush();
   if ($bro->ExtractFile($R. '/' . $fileextract, $R)) {
-    echo "<p class=\"alert alert-danger\">";
-    print $err->errstr();
-    print _("failed")."<br />\n";
-    echo "</p>";
-  } else {
-    print _("done")."<br />\n";
+    $msg->raise("INFO", "bro", _("The extraction of the file '%s' succeeded"), $fileextract);
   }
 }
 
@@ -167,19 +191,20 @@ if (isset($actextract) && $actextract) {
 /* Creation de la liste des fichiers courants */
 $c=$bro->filelist($R, $showdirsize );
 if ($c===false) {
-  echo "<p class=\"alert alert-danger\">".$err->errstr()."</p>";
+  echo $msg->msg_html_all();
   require_once('foot.php');
   exit;
 }
 
-if (isset($error) && $error) echo "<p class=\"alert alert-danger\">$error</p>"; 
+echo $msg->msg_html_all();
 ?>
 
 <table><tr>
 <td class="formcell">
 
 <form action="bro_main.php" enctype="multipart/form-data" method="post">
-<input type="hidden" name="R" value="<?php echo $R; ?>" />
+   <?php csrf_get(); ?>
+<input type="hidden" name="R" value="<?php ehe($R); ?>" />
 <input type="hidden" name="formu" value="3" />
 
 <?php __("Send one file:"); ?><br />
@@ -187,7 +212,7 @@ if (isset($error) && $error) echo "<p class=\"alert alert-danger\">$error</p>";
 <br />
 <input type="submit" id="sendthisfile" class="ina" value="<?php __("Send this file"); ?>" />
 <?php echo sprintf(_("Warning: max size: %s"),$bro->getMaxAllowedUploadSize() ); ?>
-</form>
+<?php __("(If you upload a compressed file, <br />you will be able to uncompress it after.)"); ?></form>
 
 </td>
 <td style="width: 20px">&nbsp;</td>
@@ -195,7 +220,8 @@ if (isset($error) && $error) echo "<p class=\"alert alert-danger\">$error</p>";
 
 <?php __("New file or folder:"); ?><br />
 <form action="bro_main.php" method="post" name="nn" id="nn">
-<input type="hidden" name="R" value="<?php echo $R; ?>" />
+   <?php csrf_get(); ?>
+<input type="hidden" name="R" value="<?php ehe($R); ?>" />
 <table><tr>
 <td><input type="text" class="int" name="nomfich" id="nomfich" size="22" maxlength="255" /></td>
 <td><input type="submit" class="ina" value="<?php __("Create"); ?>" /></td>
@@ -212,17 +238,19 @@ if (isset($error) && $error) echo "<p class=\"alert alert-danger\">$error</p>";
 <tr><td valign="top">
 
 <?php
-/* Renommer / Copier / D�placer les fichiers : */
+/* ' */
+/* Rename / Copy / Move files: */
 if (isset($formu) && $formu==2 && isset($actrename) && $actrename && count($d)) {
   echo "<table cellpadding=\"6\">\n";
   echo "<form action=\"bro_main.php\" method=\"post\">\n";
-  echo "<input type=\"hidden\" name=\"R\" value=\"$R\" />\n";
+  csrf_get(); 
+  echo "<input type=\"hidden\" name=\"R\" value=\"".ehe($R,false)."\" />\n";
   echo "<input type=\"hidden\" name=\"formu\" value=\"4\" />\n";
   echo "<tr><th colspan=\"2\">"._("Rename")."</th></tr>";
   for ($i=0;$i<count($d);$i++) {
     $d[$i]=ssla($d[$i]);
-    echo "<tr><td><input type=\"hidden\" name=\"o[$i]\" value=\"".$d[$i]."\" />".$d[$i]."</td>";
-    echo "<td><input type=\"text\" class=\"int\" name=\"d[$i]\" value=\"".$d[$i]."\" /></td></tr>";
+    echo "<tr><td><input type=\"hidden\" name=\"o[$i]\" value=\"".ehe($d[$i],false)."\" />".ehe($d[$i],false)."</td>";
+    echo "<td><input type=\"text\" class=\"int\" name=\"d[$i]\" value=\"".ehe($d[$i],false)."\" /></td></tr>";
   }
   echo "<tr><td colspan=\"2\" align=\"center\"><input type=\"submit\" class=\"inb\" name=\"submit\" value=\""._("Rename")."\" /></td></tr>";
   echo "</table></form>\n";
@@ -232,7 +260,8 @@ if (isset($formu) && $formu==2 && isset($actrename) && $actrename && count($d)) 
 /* [ML] Changer les permissions : */
 if ($formu==2 && ! (empty($actperms)) && count($d)) {
   echo "<form action=\"bro_main.php\" method=\"post\">\n";
-  echo "<input type=\"hidden\" name=\"R\" value=\"$R\" />\n";
+  csrf_get();
+  echo "<input type=\"hidden\" name=\"R\" value=\"".ehe($R,false)."\" />\n";
   echo "<input type=\"hidden\" name=\"formu\" value=\"7\" />\n";
   echo "<p>"._("Permissions")."</p>";
 
@@ -249,11 +278,11 @@ if ($formu==2 && ! (empty($actperms)) && count($d)) {
     $modes = $stats[2];
 
     echo "<tr>";
-    echo "<td>".$d[$i]."</td>";
+    echo "<td>".ehe($d[$i],false)."</td>";
 
     // Owner
     echo "<td>";
-    echo "<input type=\"hidden\" name=\"d[$i]\" value=\"".$d[$i]."\" />";
+    echo "<input type=\"hidden\" name=\"d[$i]\" value=\"".ehe($d[$i],false)."\" />";
     echo "<label for=\"permw$i\">"._("write")."</label> <input type=\"checkbox\" id=\"permw$i\" name=\"perm[$i][w]\" value=\"1\" ". (($modes & 0000200) ? 'checked="checked"' : '') ." />";
     echo "</td>";
 
@@ -272,7 +301,8 @@ if (count($c)) {
 
   ?>
     <form action="bro_main.php" method="post" name="main" id="main">
-    <input type="hidden" name="R" value="<?php echo $R; ?>" />
+   <?php csrf_get(); ?>
+    <input type="hidden" name="R" value="<?php ehe($R); ?>" />
     <input type="hidden" name="formu" value="2" />
 
     <br />
@@ -288,8 +318,8 @@ if (count($c)) {
   <input type="submit" class="ina" name="actcopy" value="<?php __("Copy"); ?>" onClick=" return actmoveto_not_empty();"/>
     <input type="submit" class="ina" name="actmove" value="<?php __("Move"); ?>" onClick=" return actmoveto_not_empty();"/>
     <?php __("To"); ?> 
-    <input type="text" class="int" id='actmoveto' name="actmoveto" value="" />
-    <?php display_browser( "" , "main.actmoveto" ); ?>
+    <input type="text" class="int" id="actmoveto" name="actmoveto" value="" />
+    <?php display_browser( "" , "actmoveto" ); ?>
 
     </td></tr>
 
@@ -332,26 +362,30 @@ function actmoveto_not_empty() {
                   <?php } ?>
                   <th></th>
                   </tr></thead><tbody>
-                  <?php
+<?php
 
         for($i=0;$i<count($c);$i++) {
           echo "<tr class=\"lst\">\n";
           if ($c[$i]["type"]) {
-            echo "  <td width=\"28\"><input type=\"checkbox\" class=\"inc\" name=\"d[]\" value=\"".htmlentities($c[$i]["name"])."\" /></td>";
+              echo "  <td width=\"28\"><input type=\"checkbox\" class=\"inc\" name=\"d[]\" value=\"".ehe($c[$i]["name"],false)."\" /></td>";
             if ($p["showicons"]) {
               echo "<td style='text-align: center;' width=\"28\"><img src=\"icon/".$bro->icon($c[$i]["name"])."\" width=\"16\" height=\"16\" alt=\"\" /></td>";
             }
             echo "<td><a href=\"";
             $canedit = $bro->can_edit($R,$c[$i]["name"]);
-            if ($canedit) {
+            if ($canedit&&($c[$i]["size"]<$memory_limit)) {
               echo "bro_editor.php?editfile=".urlencode($c[$i]["name"])."&amp;R=".urlencode($R);
             } else {
               echo "bro_downloadfile.php?dir=".urlencode($R)."&amp;file=".urlencode($c[$i]["name"]);
             }
             echo "\">"; ehe($c[$i]["name"]); 
-            echo"</a></td>\n";
-            echo "  <td>".format_size($c[$i]["size"])."</td>";
-            echo "<td>".format_date(_('%3$d-%2$d-%1$d %4$d:%5$d'),date("Y-m-d H:i:s",$c[$i]["date"]))."<br /></td>";
+            echo"</a>";
+            if (!($c[$i]["permissions"] & 0000200)) {
+                echo " (<a href=\"bro_main.php?actperms=Permissions&R=".urlencode($R)."&amp;formu=2&amp;d[]=".urlencode($c[$i]["name"])."\">"._("protected")."</a>)";
+            }
+            echo "</td>\n";
+            echo "  <td data-sort-value=\"".$c[$i]["size"]."\">".format_size($c[$i]["size"])."</td>";
+            echo "<td data-sort-value=\"".$c[$i]["date"]."\">".format_date(_('%3$d-%2$d-%1$d %4$d:%5$d'),date("Y-m-d H:i:s",$c[$i]["date"]))."<br /></td>";
             if ($p["showtype"]) {
               echo "<td>"._($bro->mime($c[$i]["name"]))."</td>";
             }
@@ -374,24 +408,24 @@ function actmoveto_not_empty() {
               echo "</a>";
               echo "<div id='rest_db_$i' style='display:none;'><fieldset><legend>"._("Restore SQL")."</legend>"._("In which database to you want to restore this dump?");
               echo "<br/>";
-              echo "<input type='hidden' name ='filename' value='".htmlentities($R."/".$c[$i]["name"])."' />";
+              echo "<input type='hidden' name ='filename' value='".ehe($R."/".$c[$i]["name"],false)."' />";
               $dbl=array(); foreach ($mysql->get_dblist() as $v) { $dbl[]=$v['db'];}
               echo "<select id='db_name_$i'>"; eoption($dbl,'',true); echo "</select>" ;
-              echo "<a href='javascript:;' onClick='window.location=\"sql_restore.php?filename=".urlencode($R."/".$c[$i]["name"])."&amp;id=\"+encodeURIComponent($(\"#db_name_$i\").val()) ;'>"._("Restore it")."</a>";
+              echo "<a href='javascript:;' onClick='window.location=\"sql_restore.php?filename=".eue($R."/".$c[$i]["name"],false)."&amp;id=\"+encodeURIComponent($(\"#db_name_$i\").val()) ;'>"._("Restore it")."</a>";
               echo "</fieldset></div>";
             }
 
             echo "</td>\n";
           } else {           // DOSSIER :
-            echo "  <td width=\"28\"><input type=\"checkbox\" class=\"inc\" name=\"d[]\" value=\"".htmlentities($c[$i]["name"])."\" /></td>";
+              echo "  <td width=\"28\"><input type=\"checkbox\" class=\"inc\" name=\"d[]\" value=\"".ehe($c[$i]["name"],false)."\" /></td>";
             if ($p["showicons"]) {
               echo "<td width=\"28\" style='text-align: center;'><img src=\"icon/folder.png\" width=\"16\" height=\"16\" alt=\"\" /></td>";
             }
             echo "<td><b><a href=\"";
-            echo "bro_main.php?R=".urlencode($R."/".$c[$i]["name"]);
+            echo "bro_main.php?R=".eue($R."/".$c[$i]["name"],false);
             echo "\">"; ehe($c[$i]["name"]); echo "/</a></b></td>\n";
-            echo "  <td>".format_size($c[$i]["size"])."</td>";
-            echo "<td>".format_date(_('%3$d-%2$d-%1$d %4$d:%5$d'),date("Y-m-d h:i:s",$c[$i]["date"]))."<br /></td>";
+            echo "  <td data-sort-value=\"".$c[$i]["size"]."\">".format_size($c[$i]["size"])."</td>";
+            echo "<td data-sort-value=\"".$c[$i]["date"]."\">".format_date(_('%3$d-%2$d-%1$d %4$d:%5$d'),date("Y-m-d h:i:s",$c[$i]["date"]))."<br /></td>";
             if ($p["showtype"]) {
               echo "<td>"._("Folder")."</td>";
             }
@@ -412,9 +446,16 @@ function actmoveto_not_empty() {
         for($i=0;$i<round(count($c)/2);$i++) {
           echo "<tr class=\"lst\">\n";
           if ($c[$i]["type"]) {
-            echo "  <td width=\"28\"><input type=\"checkbox\" class=\"inc\" name=\"d[]\" value=\"".$c[$i]["name"]."\" /></td><td><a href=\"";
-            echo "bro_editor.php?editfile=".urlencode($c[$i]["name"])."&amp;R=".urlencode($R);
-            echo "\">".htmlentities($c[$i]["name"])."</a></td>\n";
+              echo "  <td width=\"28\"><input type=\"checkbox\" class=\"inc\" name=\"d[]\" value=\"".ehe($c[$i]["name"],false)."\" /></td>";
+            echo "<td><a href=\"";
+            $canedit = $bro->can_edit($R,$c[$i]["name"]);
+            if ($canedit && ($c[$i]["size"]<$memory_limit)) {
+                echo "bro_editor.php?editfile=".eue($c[$i]["name"],false)."&amp;R=".eue($R,false);
+            } else {
+                echo "bro_downloadfile.php?dir=".eue($R,false)."&amp;file=".eue($c[$i]["name"],false);
+            }
+            echo "\">"; ehe($c[$i]["name"]); 
+            echo "</a></td>\n";
             echo "  <td>".format_size($c[$i]["size"])."</td><td>";
             $vu=$bro->viewurl($R,$c[$i]["name"]);
             if ($vu) {
@@ -424,9 +465,9 @@ function actmoveto_not_empty() {
             }
             echo "</td>\n";
           } else {
-            echo "  <td width=\"28\"><input TYPE=checkbox class=\"inc\" name=\"d[]\" value=\"".$c[$i]["name"]."\"></td><td><b><a href=\"";
-            echo "bro_main.php?R=".urlencode($R."/".$c[$i]["name"]);
-            echo "\">".htmlentities($c[$i]["name"])."/</a></b></td>\n";
+              echo "  <td width=\"28\"><input type=\"checkbox\" class=\"inc\" name=\"d[]\" value=\"".ehe($c[$i]["name"],false)."\"></td><td><b><a href=\"";
+              echo "bro_main.php?R=".eue($R."/".$c[$i]["name"],false);
+              echo "\">".ehe($c[$i]["name"],false)."/</a></b></td>\n";
             echo "  <td>".format_size($c[$i]["size"])."</td><td>";
             echo "&nbsp;";
             echo "</td>\n";
@@ -440,9 +481,15 @@ function actmoveto_not_empty() {
         for($i=round(count($c)/2);$i<count($c);$i++) {
           echo "<tr class=\"lst\">\n";
           if ($c[$i]["type"]) {
-            echo "  <td width=\"28\"><input TYPE=checkbox class=\"inc\" name=\"d[]\" value=\"".$c[$i]["name"]."\"></td><td><a href=\"";
-            echo "bro_editor.php?editfile=".urlencode($c[$i]["name"])."&amp;R=".urlencode($R);
-            echo "\">".htmlentities($c[$i]["name"])."</a></td>\n";
+              echo "  <td width=\"28\"><input type=\"checkbox\" class=\"inc\" name=\"d[]\" value=\"".ehe($c[$i]["name"],false)."\"></td><td><a href=\"";
+            $canedit = $bro->can_edit($R,$c[$i]["name"]);
+            if ($canedit && ($c[$i]["size"]<$memory_limit)) {
+              echo "bro_editor.php?editfile=".urlencode($c[$i]["name"])."&amp;R=".urlencode($R);
+            } else {
+              echo "bro_downloadfile.php?dir=".urlencode($R)."&amp;file=".urlencode($c[$i]["name"]);
+            }
+            echo "\">"; ehe($c[$i]["name"]); 
+            echo "</a></td>\n";
             echo "  <td>".format_size($c[$i]["size"])."</td><td>";
             $vu=$bro->viewurl($R,$c[$i]["name"]);
             if ($vu) {
@@ -452,9 +499,9 @@ function actmoveto_not_empty() {
             }
             echo "</td>\n";
           } else {
-            echo "  <td width=\"28\"><input TYPE=checkbox class=\"inc\" name=\"d[]\" value=\"".$c[$i]["name"]."\"></td><td><b><a href=\"";
-            echo "bro_main.php?R=".urlencode($R."/".$c[$i]["name"]);
-            echo "\">".htmlentities($c[$i]["name"])."/</a></b></td>\n";
+              echo "  <td width=\"28\"><input type=\"checkbox\" class=\"inc\" name=\"d[]\" value=\"".ehe($c[$i]["name"],false)."\"></td><td><b><a href=\"";
+              echo "bro_main.php?R=".eue($R."/".$c[$i]["name"],false);
+            echo "\">".ehe($c[$i]["name"],false)."/</a></b></td>\n";
             echo "  <td>".format_size($c[$i]["size"])."</td><td>";
             echo "&nbsp;";
             echo "</td>\n";
@@ -475,9 +522,15 @@ function actmoveto_not_empty() {
         for($i=0;$i<round(count($c)/3);$i++) {
           echo "<tr class=\"lst\">\n";
           if ($c[$i]["type"]) {
-            echo "  <td width=\"28\"><input TYPE=checkbox class=\"inc\" name=\"d[]\" value=\"".$c[$i]["name"]."\"></td><td><a href=\"";
-            echo "bro_editor.php?editfile=".urlencode($c[$i]["name"])."&amp;R=".urlencode($R);
-            echo "\">".htmlentities($c[$i]["name"])."</a></td>\n";
+              echo "  <td width=\"28\"><input type=\"checkbox\" class=\"inc\" name=\"d[]\" value=\"".ehe($c[$i]["name"],false)."\"></td><td><a href=\"";
+            $canedit = $bro->can_edit($R,$c[$i]["name"]);
+            if ($canedit&&($c[$i]["size"]<$memory_limit)) {
+              echo "bro_editor.php?editfile=".eue($c[$i]["name"],false)."&amp;R=".eue($R,false);
+            } else {
+              echo "bro_downloadfile.php?dir=".eue($R,false)."&amp;file=".eue($c[$i]["name"],false);
+            }
+            echo "\">"; ehe($c[$i]["name"],false); 
+            echo "</a></td>\n";
             echo "  <td>".format_size($c[$i]["size"])."</td><td>";
             $vu=$bro->viewurl($R,$c[$i]["name"]);
             if ($vu) {
@@ -487,9 +540,9 @@ function actmoveto_not_empty() {
             }
             echo "</td>\n";
           } else {
-            echo "  <td width=\"28\"><input TYPE=checkbox class=\"inc\" name=\"d[]\" value=\"".$c[$i]["name"]."\"></td><td><b><a href=\"";
-            echo "bro_main.php?R=".urlencode($R."/".$c[$i]["name"]);
-            echo "\">".htmlentities($c[$i]["name"])."/</a></b></td>\n";
+              echo "  <td width=\"28\"><input type=\"checkbox\" class=\"inc\" name=\"d[]\" value=\"".ehe($c[$i]["name"],false)."\"></td><td><b><a href=\"";
+            echo "bro_main.php?R=".eue($R."/".$c[$i]["name"],false);
+            echo "\">".ehe($c[$i]["name"],false)."/</a></b></td>\n";
             echo "  <td>".format_size($c[$i]["size"])."</td><td>";
             echo "&nbsp;";
             echo "</td>\n";
@@ -503,9 +556,15 @@ function actmoveto_not_empty() {
         for($i=round(count($c)/3);$i<round(2*count($c)/3);$i++) {
           echo "<tr class=\"lst\">\n";
           if ($c[$i]["type"]) {
-            echo "  <td width=\"28\"><input TYPE=checkbox class=\"inc\" name=\"d[]\" value=\"".$c[$i]["name"]."\"></td><td><a href=\"";
-            echo "bro_editor.php?editfile=".urlencode($c[$i]["name"])."&amp;R=".urlencode($R);
-            echo "\">".htmlentities($c[$i]["name"])."</a></td>\n";
+              echo "  <td width=\"28\"><input type=\"checkbox\" class=\"inc\" name=\"d[]\" value=\"".ehe($c[$i]["name"],false)."\"></td><td><a href=\"";
+            $canedit = $bro->can_edit($R,$c[$i]["name"]);
+            if ($canedit&&($c[$i]["size"]<$memory_limit)) {
+              echo "bro_editor.php?editfile=".eue($c[$i]["name"],false)."&amp;R=".eue($R,false);
+            } else {
+              echo "bro_downloadfile.php?dir=".eue($R,false)."&amp;file=".eue($c[$i]["name"],false);
+            }
+            echo "\">"; ehe($c[$i]["name"],false); 
+            echo "</a></td>\n";
             echo "  <td>".format_size($c[$i]["size"])."</td><td>";
             $vu=$bro->viewurl($R,$c[$i]["name"]);
             if ($vu) {
@@ -516,9 +575,9 @@ function actmoveto_not_empty() {
 
             echo "</td>\n";
           } else {
-            echo "  <td width=\"28\"><input TYPE=checkbox class=\"inc\" name=\"d[]\" value=\"".$c[$i]["name"]."\"></td><td><b><a href=\"";
-            echo "bro_main.php?R=".urlencode($R."/".$c[$i]["name"]);
-            echo "\">".htmlentities($c[$i]["name"])."/</a></b></td>\n";
+              echo "  <td width=\"28\"><input type=\"checkbox\" class=\"inc\" name=\"d[]\" value=\"".ehe($c[$i]["name"],false)."\"></td><td><b><a href=\"";
+            echo "bro_main.php?R=".eue($R."/".$c[$i]["name"],false);
+            echo "\">".ehe($c[$i]["name"],false)."/</a></b></td>\n";
             echo "  <td>".format_size($c[$i]["size"])."</td><td>";
             echo "&nbsp;";
             echo "</td>\n";
@@ -532,9 +591,15 @@ function actmoveto_not_empty() {
         for($i=round(2*count($c)/3);$i<count($c);$i++) {
           echo "<tr class=\"lst\">\n";
           if ($c[$i]["type"]) {
-            echo "  <td width=\"28\"><input TYPE=checkbox class=\"inc\" name=\"d[]\" value=\"".$c[$i]["name"]."\"></td><td><a href=\"";
-            echo "bro_editor.php?editfile=".urlencode($c[$i]["name"])."&amp;R=".urlencode($R);
-            echo "\">".htmlentities($c[$i]["name"])."</a></td>\n";
+              echo "  <td width=\"28\"><input type=\"checkbox\" class=\"inc\" name=\"d[]\" value=\"".ehe($c[$i]["name"],false)."\"></td><td><a href=\"";
+            $canedit = $bro->can_edit($R,$c[$i]["name"]);
+            if ($canedit && ($c[$i]["size"]<$memory_limit)) {
+              echo "bro_editor.php?editfile=".eue($c[$i]["name"],false)."&amp;R=".eue($R,false);
+            } else {
+              echo "bro_downloadfile.php?dir=".eue($R)."&amp;file=".eue($c[$i]["name"]);
+            }
+            echo "\">"; ehe($c[$i]["name"],false); 
+            echo "</a></td>\n";
             echo "  <td>".format_size($c[$i]["size"])."</td><td>";
             $vu=$bro->viewurl($R,$c[$i]["name"]);
             if ($vu) {
@@ -544,9 +609,9 @@ function actmoveto_not_empty() {
             }
             echo "</td>\n";
           } else {
-            echo "  <td width=\"28\"><input TYPE=checkbox class=\"inc\"  name=\"d[]\" value=\"".$c[$i]["name"]."\"></td><td><b><a href=\"";
-            echo "bro_main.php?R=".urlencode($R."/".$c[$i]["name"]);
-            echo "\">".htmlentities($c[$i]["name"])."/</a></b></td>\n";
+              echo "  <td width=\"28\"><input type=\"checkbox\" class=\"inc\"  name=\"d[]\" value=\"".ehe($c[$i]["name"],false)."\"></td><td><b><a href=\"";
+            echo "bro_main.php?R=".eue($R."/".$c[$i]["name"],false);
+            echo "\">".ehe($c[$i]["name"],false)."/</a></b></td>\n";
             echo "  <td>".format_size($c[$i]["size"])."</td><td>";
             echo "&nbsp;";
             echo "</td>\n";
@@ -573,20 +638,20 @@ else {
 
 <br/>
 
-<p>
-<span class="ina"><a href="bro_main.php?R=<?php echo (($R)?$R:"/"); ?>&amp;showdirsize=1"><?php __("Show size of directories"); ?></a></span> <?php __("(slow)"); ?>
-</p><p>&nbsp;</p><p>
+<div class="showdirsize_button">
+<span class="ina"><a href="bro_main.php?R=<?php eue(($R)?$R:"/",false); ?>&amp;showdirsize=1"><?php __("Show size of directories"); ?></a></span> <?php __("(slow)"); ?><br />&nbsp;<br />
+</div>
 <span class="ina"><?php
 if ($hta->is_protected($R)) {
-  echo "<a href=\"hta_edit.php?dir=".(($R)?$R:"/")."\">"._("Edit this folder's protection")."</a>";
+    echo "<a href=\"hta_edit.php?dir=".eue(($R)?$R:"/",false)."\">"._("Edit this folder's protection")."</a>";
 }
 else {
-  echo "<a href=\"hta_add.php?dir=".(($R)?$R:"/")."\">"._("Protect this folder")."</a>";
+    echo "<a href=\"hta_add.php?dir=".eue(($R)?$R:"/",false)."\">"._("Protect this folder")."</a>";
 }
 ?></span> <?php __("with a login and a password"); ?>
 </p><p>
 <span class="ina">
-<a href="bro_tgzdown.php?dir=<?php echo (($R)?$R:"/") ?>"><?php __("Download this folder"); ?></a>
+<a href="bro_tgzdown.php?dir=<?php eue(($R)?$R:"/"); ?>"><?php __("Download this folder"); ?></a>
 </span> &nbsp; 
 <?php printf(_("as a %s file"),$bro->l_tgz[$p["downfmt"]]); ?>
 </p>  
@@ -617,7 +682,17 @@ else {
 </td></tr></table>
 
 <script type="text/javascript">
-$(document).ready(function() {  $("#tab_files_w_details").tablesorter(); } ); 
+$(document).ready(function() {
+  $("#tab_files_w_details").tablesorter({
+    textExtraction: function(node) {
+        var attr = $(node).attr('data-sort-value');
+        if (typeof attr !== 'undefined' && attr !== false) {
+            return attr;
+        }
+        return $(node).text(); 
+    } 
+   });
+}); 
 </script>
 
 <?php include_once("foot.php"); ?>

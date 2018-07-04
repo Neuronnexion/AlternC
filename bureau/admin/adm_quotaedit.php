@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: adm_quotaedit.php,v 1.4 2004/10/24 20:09:21 anonymous Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,15 +15,20 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Benjamin Sonntag
- Purpose of file: Show the form to edit the user's quota
- ----------------------------------------------------------------------
 */
+
+/** 
+ * Show the form used to update users' quotas
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 include_once("head.php");
 
 if (!$admin->enabled) {
-	__("This page is restricted to authorized staff");
+	$msg->raise("ERROR", "admin", _("This page is restricted to authorized staff"));
+	echo $msg->msg_html_all();
 	include_once("foot.php");
 	exit();
 }
@@ -41,14 +38,10 @@ $fields = array (
 );
 getFields($fields);
 
-if (!$us=$admin->get($uid)) {
-	$error=$err->errstr();
-}
+$us=$admin->get($uid);
 
 $mem->su($uid);
-if (!$r=$quota->getquota()) {
-	$error=$err->errstr();
-}
+$r=$quota->getquota();
 $mem->unsu();
 
 ?>
@@ -56,16 +49,13 @@ $mem->unsu();
 <hr id="topbar"/>
 <br />
 <?php
-	if (isset($error) && $error) {
-	  echo "<p class=\"alert alert-danger\">$error</p>";
-	  include_once("foot.php");
-	  exit();
-	}
+echo $msg->msg_html_all();
 ?>
 <form method="post" action="adm_quotadoedit.php">
+  <?php csrf_get(); ?>
 <table class="tedit">
-<tr><th><input type="hidden" name="uid" value="<?php echo $uid ?>" />
-<?php __("Username"); ?></th><td colspan="3"><code><big><?php echo $us["login"]; ?></big></code>&nbsp;</td></tr>
+<tr><th><input type="hidden" name="uid" value="<?php ehe($uid); ?>" />
+<?php __("Username"); ?></th><td colspan="3"><code><big><?php ehe($us["login"]); ?></big></code>&nbsp;</td></tr>
 <tr><th><?php __("Quota"); ?></th><th style="text-align: right"><?php __("Total"); ?></th><th><?php __("Used"); ?></th></tr>
 <?php
 $ql=$quota->qlist();

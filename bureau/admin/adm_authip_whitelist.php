@@ -1,4 +1,28 @@
 <?php 
+/*
+ ----------------------------------------------------------------------
+ LICENSE
+
+ This program is free software; you can redistribute it and/or
+ modify it under the terms of the GNU General Public License (GPL)
+ as published by the Free Software Foundation; either version 2
+ of the License, or (at your option) any later version.
+
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+
+ To read the license please visit http://www.gnu.org/copyleft/gpl.html
+ ----------------------------------------------------------------------
+*/
+
+/**
+ * Manages Whitelists in IP auth module 
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 include_once("head.php");
 
@@ -15,13 +39,13 @@ getFields($fields);
 
 if (!empty($delete_id)) {
   if (! $authip->ip_delete($delete_id)) {
-    $error="Error during deletion";
+    $msg->raise("ERROR", "admin", _("Error during deletion"));
   }
 }
 
 if (!empty($ipsub)) {
   if (! $authip->ip_save_whitelist($id, $ipsub, $infos)) {
-    $error="Error during recording";
+    $msg->raise("ERROR", "admin", _("Error during recording"));
   }
 }
 
@@ -32,9 +56,8 @@ $list_ip = $authip->list_ip_whitelist();
 <hr id="topbar"/>
 <br />
 
-<?php if (isset($error) && $error) { ?>
-  <p class="alert alert-danger"><?php echo $error ?></p>
-<?php } ?>
+<?php echo $msg->msg_html_all(); ?>
+
 <center>
   <p class="alert alert-warning"><?php __("Warning"); echo "<br/>"; __("The IP and subnet you have here are allowed for ALL users and ALL usages"); ?></p>
 </center>
@@ -44,15 +67,16 @@ $list_ip = $authip->list_ip_whitelist();
         <legend><?php __("Add an IP");?> - <a href="javascript:edit_ip('','<?php echo htmlentities(get_remote_ip())."','Home IP'";?>);" ><?php echo __("Add my current IP"); ?></a></legend>
         <span id="form_add_ip">
         <form method="post" action="adm_authip_whitelist.php" name="main" id="main">
+   <?php csrf_get(); ?>
           <p id="reset_edit_ip" style="display:none;"><a href="javascript:reset_edit_ip();"><?php __("Cancel edit")?></a></p>
           <input type="hidden" name="id" value="" id="edit_id" />
           <p>
             <?php __("Enter here the IP address you want. <br/> <i>IPv4, IPv6 and subnet allowed</i>"); ?> <br/>
-            <input type="text" size='20' maxlength='39' name="ipsub" id="edit_ip" />
+            <input type="text" size="20" maxlength="39" name="ipsub" id="edit_ip" />
           </p>
           <p>
             <?php __("Add a comment");?><br/>
-            <input type="text" size='25' maxlength='200' name="infos" id="edit_infos" />
+            <input type="text" size="25" maxlength="200" name="infos" id="edit_infos" />
           </p>
           <input type="submit" class="inb" value="<?php __("Save")?>" />
         </form>
@@ -60,8 +84,8 @@ $list_ip = $authip->list_ip_whitelist();
       </fieldset>
  
 <br/>
-      <table class='tlist'>
-      <tr><th><?php __("Type"); ?></th><th><?php __("IP"); ?></th><th><?php __("Informations"); ?></th><th colspan='2' /></tr>
+      <table class="tlist">
+      <tr><th><?php __("Type"); ?></th><th><?php __("IP"); ?></th><th><?php __("Informations"); ?></th><th colspan="2" /></tr>
       <?php 
       foreach($list_ip as $i) {
         if (checkip($i['ip'])) {
@@ -79,10 +103,10 @@ $list_ip = $authip->list_ip_whitelist();
         } else {
           $txt = "Unknow IP";
         }
-        echo "<tr class='lst'><td>$txt</td><td>{$i['ip_human']}</td><td>{$i['infos']}</td>";
+        echo "<tr class=\"lst\"><td>$txt</td><td>{$i['ip_human']}</td><td>{$i['infos']}</td>";
         ?>
-        <td><div class="ina edit"><a href="javascript:edit_ip(<?php echo "'".htmlentities($i['id'])."','".htmlentities($i['ip_human'])."','".htmlentities($i['infos'])."'"; ?>);"><?php __("Edit"); ?></a></div></td>
-        <td><div class="ina delete"><a href="adm_authip_whitelist.php?delete_id=<?php echo urlencode($i["id"]) ?>"><?php __("Delete"); ?></a></div></td>
+        <td><div class="ina edit"><a href="javascript:edit_ip(<?php echo "'".urlencode($i['id'])."','".urlencode($i['ip_human'])."','".urlencode($i['infos'])."'"; ?>);"><?php __("Edit"); ?></a></div></td>
+        <td><div class="ina delete"><a href="adm_authip_whitelist.php?delete_id=<?php eue($i["id"]); ?>"><?php __("Delete"); ?></a></div></td>
         </tr>
 
       <?php } ?>

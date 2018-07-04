@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: sql_users_add.php,v 1.5 2004/05/19 14:23:06 nahuel Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,49 +15,59 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Nahuel ANGELINETTI
- Purpose of file:
- ----------------------------------------------------------------------
 */
+
+/**
+ * Form to add a MySQL user account
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/
+ */
+
 require_once("../class/config.php");
 include_once("head.php");
 
 $fields = array (
-	"usern"     => array ("request", "string", ""),
-	"password"    => array ("request", "string", ""),
-	"passconf"    => array ("request", "string", ""),
+	"usern"     => array ("post", "string", ""),
+	"password"    => array ("post", "string", ""),
+	"passconf"    => array ("post", "string", ""),
 );
 getFields($fields);
+
+$c=$admin->listPasswordPolicies();
+$passwd_classcount = $c['mysql']['classcount'];
 
 ?>
 <h3><?php __("Create a new MySQL user"); ?></h3>
 <hr id="topbar"/>
 <br />
 <?php
-	if (isset($error) && $error) {
-		echo "<p class=\"alert alert-danger\">$error</p>";
-		if (isset($fatal) && $fatal) {
-?>
-<?php include_once("foot.php"); ?>
+echo $msg->msg_html_all();
 
-<?php
-			exit();
-		}
-	}
+if (isset($fatal) && $fatal) {
+    include_once("foot.php");
+    exit();
+}
 ?>
-<form method="post" action="sql_users_doadd.php" id="main" name="main">
+<form method="post" action="sql_users_doadd.php" id="main" name="main" autocomplete="off">
+  <?php csrf_get(); ?>
+
 <table class="tedit">
 <tr>
+<?php
+// We check the max length of a mysql user (defined in the variables of AlternC) 
+// we use that for the maxlenght of the Input 
+$len=variable_get('sql_max_username_length', NULL)-strlen($mem->user["login"]."_");
+?>
   <th><label for="usern"><?php __("Username"); ?></label></th>
-  <td><span class="int" id="usernpfx"><?php echo $mem->user["login"]; ?>_</span><input type="text" class="int" name="usern" id="usern" value="<?php ehe($usern); ?>" size="20" maxlength="20" /></td>
+  <td><span class="int" id="usernpfx"><?php echo $mem->user["login"]; ?>_</span><input type="text" class="int" name="usern" id="usern" value="<?php ehe($usern); ?>" size="20" maxlength="<?php echo $len; ?>" /></td>
 </tr>
 <tr>
   <th><label for="password"><?php __("Password"); ?></label></th>
-  <td><input type="password" class="int" name="password" id="password" size="26"/><?php display_div_generate_password(DEFAULT_PASS_SIZE,"#password","#passconf"); ?></td>
+  <td><input type="password" class="int" autocomplete="off" name="password" id="password" size="26"/><?php display_div_generate_password(DEFAULT_PASS_SIZE,"#password","#passconf",$passwd_classcount); ?></td>
 </tr>
 <tr>
   <th><label for="password"><?php __("Confirm password"); ?></label></th>
-  <td><input type="password" class="int" name="passconf" id="passconf" size="26"/></td>
+  <td><input type="password" class="int" autocomplete="off" name="passconf" id="passconf" size="26"/></td>
 </tr>
 
 <tr class="trbtn"><td colspan="2">
@@ -75,12 +77,10 @@ getFields($fields);
 </table>
 </form>
 <script type="text/javascript">
-  if (document.forms['main'].usern.text!='') {
+  if (document.forms['main'].usern.value!='') {
     document.forms['main'].password.focus();
   } else {
     document.forms['main'].usern.focus();
   }
-  document.forms['main'].setAttribute('autocomplete', 'off');
-
 </script>
 <?php include_once("foot.php"); ?>

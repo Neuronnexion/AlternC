@@ -1,15 +1,5 @@
 <?php
 /*
- $Id: adm_defquotas.php,v 1.4 2006/01/24 05:03:30 joe Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2006 Le r�seau Koumbit Inc.
- http://koumbit.org/
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -25,14 +15,19 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Benjamin Sonntag
- Purpose of file: Manage the default quotas
- ----------------------------------------------------------------------
 */
+
+/**
+ * Administrator page to manage default quotas for users
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/
+ */
+
 require_once("../class/config.php");
 
 if (!$admin->enabled) {
-	__("This page is restricted to authorized staff");
+	$msg->raise("ERROR", "admin", _("This page is restricted to authorized staff"));
+	echo $msg->msg_html_all();
 	exit();
 }
 $fields = array (
@@ -54,11 +49,10 @@ if ($synchronise==true) {
 
 $quota->create_missing_quota_profile();
 
-if (isset($error) && $error) {
-  echo "<p class=\"alert alert-danger\">$error</p>";
-}
+echo $msg->msg_html_all();
 ?>
 <form method="post" action="adm_dodefquotas.php">
+  <?php csrf_get(); ?>
 <p>
 <input type="hidden" name="action" value="add" />
 <input type="text" name="type" class="int" />
@@ -69,6 +63,7 @@ if (isset($error) && $error) {
 <?php
 ?>
 <form method="post" action="adm_dodefquotas.php">
+  <?php csrf_get(); ?>
 <table border="0" cellpadding="4" cellspacing="0">
 <tr class="lst">
 <td>
@@ -90,6 +85,7 @@ foreach($quota->listtype() as $type) {
 <span class="inb"><a href="adm_defquotas.php?synchronise=1"><?php __("Synchronise user's quota (only to upper value)"); ?></a></span>  
 
 <form method="post" action="adm_dodefquotas.php">
+  <?php csrf_get(); ?>
 <div>
 <input type="hidden" name="action" value="modify" />
 <?php
@@ -111,7 +107,7 @@ foreach($q as $name => $value) {
 
 <tr class="lst">
 <td><label for="<?php echo $key; ?>"><?php echo $qarray[$name] ; ?></label></td>
-<td><input type="text" class="int" size="16" maxlength="16" name="<?php echo $key; ?>" id="<?php echo $key;?>" value="<?php ehe($value); ?>" /></td></tr>
+<td><input type="text" class="int" size="16" maxlength="16" name="<?php ehe($key); ?>" id="<?php ehe($key); ?>" value="<?php ehe($value); ?>" /></td></tr>
 
 <?php
   } //foreach 

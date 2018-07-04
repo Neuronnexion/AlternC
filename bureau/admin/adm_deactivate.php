@@ -1,13 +1,5 @@
 <?php 
 /*
- $Id: adm_tld.php,v 1.4 2004/11/29 17:27:04 anonymous Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,16 +15,22 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Benjamin Sonntag
- Purpose of file: Manage allowed TLD on the server
- ----------------------------------------------------------------------
 */
+
+/**
+ * Page used by administrators to deactivate an account
+ * and redirect its domains
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/
+ */
+
 require_once("../class/config.php");
 
 include_once("head.php");
 
 if (!$admin->enabled) {
-	__("This page is restricted to authorized staff");
+	$msg->raise("ERROR", "admin", _("This page is restricted to authorized staff"));
+	echo $msg->msg_html_all();
 	exit;
 }
 $fields = array (
@@ -43,19 +41,22 @@ $fields = array (
 getFields($fields);
 
 if (!$uid) {
-	__("Account not found");
+	$msg->raise("ERROR", "admin", _("Account not found"));
+	echo $msg->msg_html_all();
 	include_once("foot.php");
 	exit();
 }
 
 if (!$admin->checkcreator($uid)) {
-        __("This page is restricted to authorized staff");
+	$msg->raise("ERROR", "admin", _("This page is restricted to authorized staff"));
+	echo $msg->msg_html_all();
 	include_once("foot.php");
 	exit();
 }
 
 if (!$r=$admin->get($uid)) {
-	__("User does not exist");
+	$msg->raise("ERROR", "admin", _("User does not exist"));
+	echo $msg->msg_html_all();
 	include_once("foot.php");
 	exit();
 }
@@ -69,7 +70,8 @@ if (! ($confirmed ) ) {
 
   ?>
   <form action="<?php echo $_SERVER['PHP_SELF'];?>" method="POST">
-  <input type="hidden" name="uid" value="<?php echo $uid?>" />
+     <?php csrf_get(); ?>
+  <input type="hidden" name="uid" value="<?php ehe($uid); ?>" />
   <?php __("Redirection URL:") ?> <input type="text" name="redirect" class="int" value="http://example.com/" />
   <input type="submit" name="submit" class="inb" value="<?php __("Confirm")?>" />
   <input type="button" class="inb" name="cancel" value="<?php __("Cancel"); ?>" onclick="document.location='adm_list.php'"/>
@@ -78,13 +80,14 @@ if (! ($confirmed ) ) {
   print "<h3>" . _("Domains of user: ") . $r["login"] . "</h3>";
 } else {
   if (empty($redirect)) {
-    __("Missing redirect url.");
+    $msg->raise("ERROR", "admin", _("Missing redirect url."));
+    echo $msg->msg_html_all();
     include_once("foot.php");
     exit();
   } 
 }
 
-# this string will contain an SQL request that will be printed at the end of the process and that can be used to reload the old domain configuration
+// this string will contain an SQL request that will be printed at the end of the process and that can be used to reload the old domain configuration
 $backup = "";
 
 # 1. list the domains of the user
@@ -104,9 +107,7 @@ reset($domains);
 foreach ($domains as $key => $domain) {
   if (!$confirmed) print '<h4>' . $domain . '</h4><ul>';
   $dom->lock();
-  if (!$r=$dom->get_domain_all($domain)) {
-          $error=$err->errstr();
-  }
+  $r=$dom->get_domain_all($domain);
   $dom->unlock();
   # 2. for each subdomain
   if (is_array($r['sub'])) {
@@ -130,8 +131,9 @@ foreach ($domains as $key => $domain) {
 	  
 # 2.2 change the subdomain to redirect to http://spam.koumbit.org/
 	  $dom->lock();
-      if (! $db->query("UPDATE `sub_domaines` SET `type`='" . $dom->type_url . "', valeur='$redirect',web_action='UPDATE' WHERE id=" . $r['sub'][$k]['id'] . ";\n") ) {
-	    print "-- error in $sub.$domain: " . $err->errstr() . "\n";
+	  if (!$dom->set_sub_domain($domain, $sub, $dom->type_url, "edit", $redirect)) {
+          print "-- error in $sub.$domain: ";
+          echo $msg->msg_html("ERROR");
 	  }
 	  $dom->unlock();
 	}

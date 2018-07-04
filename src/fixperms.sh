@@ -133,8 +133,9 @@ doone() {
 #      setfacl -b -k -n -R -m d:g:alterncpanel:rwx -m d:u::rwx -m d:g::rwx -m d:u:$GID:rwx -m d:g:$GID:rwx -m d:o::--- -m d:mask:rwx\
 #                    -Rm   g:alterncpanel:rwx -m u:$GID:rwx -m g:$GID:rwx -m mask:rwx\
 #               "$REP"
-      setfacl -bknR -m d:u:alterncpanel:rwx -m d:g:alterncpanel:r-x -m u:alterncpanel:rwx -m g:alterncpanel:r-x -m d:o::--- -m o::---\
-                    -m d:u:$GID:rwx -m d:g:$GID:r-x -m u:$GID:rwx -m g:$GID:r-x -m d:mask:rwx -m mask:rwx "$REP"
+      setfacl -bknR -m d:u:alterncpanel:rwx -m d:g:alterncpanel:rwx -m u:alterncpanel:rwx -m g:alterncpanel:rwx -m d:o::--- -m o::---\
+		    -m d:u:www-data:r-x -m u:www-data:r-x\
+                    -m d:u:$GID:rwx -m d:g:$GID:rwx -m u:$GID:rwx -m g:$GID:rwx -m d:mask:rwx -m mask:rwx "$REP"
 
       fixtmp $GID
       read GID LOGIN || true
@@ -165,6 +166,7 @@ fixdir() {
 #                    -Rm   g:alterncpanel:rwx -m u:$REP_ID:rwx -m g:$REP_ID:rwx -m mask:rwx\
 #               "$REP"
       setfacl -bknR -m d:u:alterncpanel:rwx -m d:g:alterncpanel:rwx -m u:alterncpanel:rwx -m g:alterncpanel:rwx -m d:o::--- -m o::---\
+		    -m d:u:www-data:r-x -m u:www-data:r-x\
                     -m d:u:$REP_ID:rwx -m d:g:$REP_ID:rwx -m u:$REP_ID:rwx -m g:$REP_ID:rwx -m d:mask:rwx -m mask:rwx "$REP"
 
       fixtmp $REP_ID

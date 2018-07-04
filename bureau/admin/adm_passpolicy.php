@@ -1,10 +1,5 @@
 <?php
 /*
- adm_passpolicy.php
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002-2010 by the AlternC Development Team.
- http://alternc.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -20,24 +15,29 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Benjamin Sonntag
- Purpose of file: Manage the password policy for AlternC
- ----------------------------------------------------------------------
 */
+
+/**
+ * Manages password policy for misc. services on AlternC (ftp, mail etc.)
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 
 if (!$admin->enabled) {
-	__("This page is restricted to authorized staff");
+	$msg->raise("ERROR", "admin", _("This page is restricted to authorized staff"));
+	echo $msg->msg_html_all();
 	exit();
 }
 
 $fields = array (
 	"edit"   => array ("request", "string", ""),
-	"doedit"   => array ("request", "string", ""),
-	"minsize"    => array ("request", "integer", "0"),
-	"maxsize" => array ("request", "integer", "64"),
-	"classcount" => array ("request", "integer", "0"),
-	"allowlogin" => array ("request", "integer", "0"),
+	"doedit"   => array ("post", "string", ""),
+	"minsize"    => array ("post", "integer", "0"),
+	"maxsize" => array ("post", "integer", "64"),
+	"classcount" => array ("post", "integer", "0"),
+	"allowlogin" => array ("post", "integer", "0"),
 );
 
 getFields($fields);
@@ -50,41 +50,38 @@ include_once("head.php");
 <hr id="topbar"/>
 <br />
 <?php
-	if (isset($error) && $error) {
-	  echo "<p class=\"alert alert-danger\">$error</p>";
-	}
-
-
 $c=$admin->listPasswordPolicies();
-//echo "<pre>"; print_r($c); echo "</pre>";
 
 if (isset($doedit) && $doedit) {
   if (!$c[$doedit]) {
-    echo "<p class=\"alert alert-danger\">"._("Policy not found")."</p>";
+    $msg->raise("ERROR", "admin", _("Policy not found"));
   } else {
     // Change it ;) 
     if ($admin->editPolicy($doedit,$minsize,$maxsize,$classcount,$allowlogin)) {
-      echo "<p class=\"info\">"._("Policy changed")."</p>";
+      $msg->raise("INFO", "admin", _("Policy changed"));
       unset($edit);
       $c=$admin->listPasswordPolicies();
     } else {
-      echo "<p class=\"alert alert-danger\">"._("Cannot edit the policy, an error occurred")."</p>";
+      $msg->raise("ERROR", "admin", _("Cannot edit the policy, an error occurred"));
     }
   }
 }
+echo $msg->msg_html_all(true, true);
 
 if (!empty($edit)) {
   if (!$c[$edit]) {
-    echo "<p class=\"alert alert-danger\">"._("Policy not found")."</p>";
+    $msg->raise("ERROR", "admin", _("Policy not found"));
+    echo $msg->msg_html_all();
   } else {
 ?>
 
- <p><?php __("Please choose which policy you want to apply to this password kind:"); ?></p>
+<p><?php __("Please choose which policy you want to apply to this password kind:"); ?></p>
 
-																	     <p><b><?php echo $c[$edit]["description"]; ?></b></p>
+<p><b><?php echo $c[$edit]["description"]; ?></b></p>
 
 <form method="post" action="adm_passpolicy.php">
-<input type="hidden" name="doedit" value="<?php echo $edit; ?>"/> 
+ <?php csrf_get(); ?>
+<input type="hidden" name="doedit" value="<?php ehe($edit); ?>"/> 
 <table class="tlist">
 <tr>
   <th><?php __("Minimum Password Size:"); ?></th>

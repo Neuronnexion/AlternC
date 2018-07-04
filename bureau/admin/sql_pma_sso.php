@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: sql_admin.php,v 1.4 2005/05/27 21:30:38 arnaud-lb Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,16 +15,23 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file:
- Purpose of file:
- ----------------------------------------------------------------------
 */
+
+/** 
+ * Launch a PhpMyAdmin session using PMA's SSO system
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/
+ */
+
 require_once("../class/config.php");
 
-if (!$r=$mysql->php_myadmin_connect()) {
-	$error=$err->errstr();
-} else {
-  session_write_close();
+$fields = array (
+	"id"     => array ("request", "string", ""),
+);
+getFields($fields);
+
+
+if ($r=$mysql->php_myadmin_connect()) {
   // SSO of PhpMyAdmin
   session_set_cookie_params(0, '/', '', 0);
   session_name('AlternC_Panel');
@@ -40,19 +39,29 @@ if (!$r=$mysql->php_myadmin_connect()) {
   $_SESSION['PMA_single_signon_user'] = $r["login"];
   $_SESSION['PMA_single_signon_password'] = $r["pass"];
   $_SESSION['PMA_single_signon_host'] = $r["host"]; // pma >= 2.11
-
   session_write_close();
+
+  // Destroy any existing phpmyadmin session
+  setcookie("phpMyAdmin", "", time() - 3600);
+
+  if ($id!="") {
+    $r=$mysql->get_mysql_details($id); 
+    if ($r) {
+      $db="?db=".$id;
+    }
+  } else {
+    $db="";
+  }
   // finally redirect to phpMyAdmin :
-  header("Location: /alternc-sql/index.php?server=1");
+  header("Location: /alternc-sql/index.php".$db);
   exit();
 }
 
 include_once("head.php");
 echo '<h3>'._("SQL Admin").'</h3>';
 
-if (!empty($error)) {
-  echo "<p class=\"alert alert-danger\">$error</p>";
-}
+echo $msg->msg_html_all();
+
 include_once("foot.php"); 
 
 ?>

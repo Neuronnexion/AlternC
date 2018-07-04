@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: adm_dosu.php,v 1.1.1.1 2003/03/26 17:41:29 root Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,14 +15,19 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Benjamin Sonntag
- Purpose of file: Transform an account from Normal to Administrator
- ----------------------------------------------------------------------
 */
+
+/**
+ * Change an account to make it an administrator account
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 
 if (!$admin->enabled) {
-	__("This page is restricted to authorized staff");
+	$msg->raise("ERROR", "admin", _("This page is restricted to authorized staff"));
+	echo $msg->msg_html_all();
 	exit();
 }
 
@@ -39,10 +36,8 @@ $fields = array (
 );
 getFields($fields);
 
-if (!$admin->normal2su($uid)) {
-	$error=$err->errstr();
- } else {
-  $error=_("This account is now an administrator account");
+if ($admin->normal2su($uid)) {
+  $msg->raise("INFO", "admin", _("This account is now an administrator account"));
  }
 
 include("adm_edit.php");

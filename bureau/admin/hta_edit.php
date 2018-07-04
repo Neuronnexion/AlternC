@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: hta_edit.php,v 1.4 2003/06/10 13:16:11 root Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,17 +15,23 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Franck Missoum, Benjamin Sonntag
- Purpose of file: Edit a protected folder
- ----------------------------------------------------------------------
 */
+
+/**
+ * Edit a protected folder parameters 
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 include_once("head.php");
 
-$fields = array (
+if (!isset($is_include)) {
+  $fields = array (
 	"dir"      => array ("request", "string", ""),
-);
-getFields($fields);
+  );
+  getFields($fields);
+}
 
 if (!$dir) {
   echo "<p class=\"alert alert-warning\">"._("No folder selected!")."</p>";
@@ -41,10 +39,10 @@ if (!$dir) {
   die();
 } else {
   $r=$hta->get_hta_detail($dir);
-  if (!$r) {
-    $error=$err->errstr();
-  }
 } // if !$dir
+
+$c=$admin->listPasswordPolicies();
+$passwd_classcount = $c['hta']['classcount'];
 
 ?>
 <h3><?php printf(_("List of authorized user in folder %s"),$dir); ?></h3>
@@ -52,24 +50,27 @@ if (!$dir) {
 <br />
 <?php
   if (!count($r)) {
-    echo "<p class=\"alert alert-warning\">".sprintf(_("No authorized user in %s"),$dir)."</p>";
+    $msg->raise("INFO", "hta", _("No authorized user in %s"),$dir);
+    echo $msg->msg_html_all();
   } else {
-     reset($r);
+    reset($r);
+    echo $msg->msg_html_all();
 ?>
 <form method="post" action="hta_dodeluser.php">
+   <?php csrf_get(); ?>
 <table cellspacing="0" cellpadding="4" class='tlist'>
   <tr>
-    <th colspan="2" ><input type="hidden" name="dir" value="<?php echo $dir?>"> </th>
+    <th colspan="2" ><input type="hidden" name="dir" value="<?php ehe($dir); ?>"> </th>
     <th><?php __("Username"); ?></th>
   </tr>
 <?php
 for($i=0;$i<count($r);$i++){ ?>
   <tr class="lst">
-    <td align="center"><input type="checkbox" class="inc" name="d[]" value="<?php echo $r[$i]?>" /></td>
+    <td align="center"><input type="checkbox" class="inc" name="d[]" value="<?php ehe($r[$i]); ?>" /></td>
     <td>
-      <div class="ina"><a href="hta_edituser.php?user=<?php echo urlencode($r[$i])?>&amp;dir=<?php echo urlencode($dir); ?>"><img src="icon/encrypted.png" alt="<?php __("Change this user's password"); ?>" /><?php __("Change this user's password"); ?></a></div>
+      <div class="ina"><a href="hta_edituser.php?user=<?php eue($r[$i]); ?>&amp;dir=<?php eue($dir); ?>"><img src="icon/encrypted.png" alt="<?php __("Change this user's password"); ?>" /><?php __("Change this user's password"); ?></a></div>
     </td>
-    <td><?php echo $r[$i]; ?></td>
+    <td><?php ehe($r[$i]); ?></td>
   </tr>
 <?php
 } // for $i
@@ -82,7 +83,7 @@ for($i=0;$i<count($r);$i++){ ?>
 
 <?php } // else !count $r ?>
 <p>
-<span class="inb"><a href="bro_main.php?R=<?php echo $dir ?>"><?php __("Show this folder's content in the File Browser"); ?></a></span>
+<span class="inb"><a href="bro_main.php?R=<?php eue($dir); ?>"><?php __("Show this folder's content in the File Browser"); ?></a></span>
 </p>
 
 <p>&nbsp;</p>
@@ -90,11 +91,16 @@ for($i=0;$i<count($r);$i++){ ?>
 <fieldset>
   <legend><h3><?php __("Adding an authorized user"); ?></h3></legend>
 
-  <form method="post" action="hta_doadduser.php" name="main" id="main">
+  <form method="post" action="hta_doadduser.php" name="main" id="main" autocomplete="off">
+   <?php csrf_get(); ?>
+<!-- honeypot fields -->
+<input type="text" style="display: none" id="fakeUsername" name="fakeUsername" value="" />
+<input type="password" style="display: none" id="fakePassword" name="fakePassword" value="" />
+
     <table class="tedit">
       <tr>
-        <th><input type="hidden" name="dir" value="<?php echo $dir ?>" /><?php __("Folder"); ?></th>
-        <td><?php echo '<a href="bro_main.php?R='.urlencode($dir).'">'.htmlspecialchars($dir).'</a>'; ?></td>
+        <th><input type="hidden" name="dir" value="<?php ehe($dir); ?>" /><?php __("Folder"); ?></th>
+        <td><?php echo '<a href="bro_main.php?R='.eue($dir,false).'">'.ehe($dir,false).'</a>'; ?></td>
       </tr>
       <tr>
         <th><label for="user"><?php __("Username"); ?></label></th>
@@ -102,11 +108,11 @@ for($i=0;$i<count($r);$i++){ ?>
       </tr>
       <tr>
         <th><label for="password"><?php __("Password"); ?></label></th>
-        <td><input type="password" class="int" name="password" id="password" value="" size="20" maxlength="64" /><?php display_div_generate_password(DEFAULT_PASS_SIZE,"#password","#passwordconf"); ?></td>
+        <td><input type="password" class="int" name="password" autocomplete="off" id="password" value="" size="20" maxlength="64" /><?php display_div_generate_password(DEFAULT_PASS_SIZE,"#password","#passwordconf",$passwd_classcount); ?></td>
       </tr>
       <tr>
         <th><label for="passwordconf"><?php __("Confirm password"); ?></label></th>
-        <td><input type="password" class="int" name="passwordconf" id="passwordconf" value="" size="20" maxlength="64" /></td>
+        <td><input type="password" class="int" name="passwordconf" autocomplete="off" id="passwordconf" value="" size="20" maxlength="64" /></td>
       </tr>
     </table>
 
@@ -118,7 +124,6 @@ for($i=0;$i<count($r);$i++){ ?>
   
 <script type="text/javascript">
   document.forms['main'].user.focus();
-  document.forms['main'].setAttribute('autocomplete', 'off'); 
 </script>
 
 <?php include_once("foot.php"); ?>

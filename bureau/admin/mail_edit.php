@@ -1,10 +1,6 @@
 <?php
 /*
  ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2000-2012 by the AlternC Development Team.
- https://alternc.org/
- ----------------------------------------------------------------------
  LICENSE
 
  This program is free software; you can redistribute it and/or
@@ -19,26 +15,30 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Purpose of file: Edit a mailbox.
- ----------------------------------------------------------------------
 */
+
+/**
+ * Form to edit a mailbox parameters.
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 include_once("head.php");
 
 $fields = array (
 	"mail_id" =>array ("request","integer",""),
-	"pass" => array ("request","string",""),
-	"passconf" => array("request","string",""),
-	"quotamb" => array("request","integer",0),
-	"enabled" => array("request","boolean",true),
-	"islocal" => array("request","boolean",true),
-	"recipients" => array("request","string",""),
+	"pass" => array ("post","string",""),
+	"passconf" => array("post","string",""),
+	"quotamb" => array("post","integer",0),
+	"enabled" => array("post","boolean",true),
+	"islocal" => array("post","boolean",true),
+	"recipients" => array("post","string",""),
 );
 getFields($fields);
 
 if (!$res=$mail->get_details($mail_id)) {
-  $error=$err->errstr();
-  include("main.php");
+  include("mail_list.php");
   exit();
 } else {
   
@@ -56,13 +56,20 @@ if (!$res=$mail->get_details($mail_id)) {
 
 
 <?php
-if (isset($error)) {
-  	echo "<p class=\"alert alert-danger\">$error</p>";
-}
+$c=$admin->listPasswordPolicies();
+$passwd_classcount = $c['pop']['classcount'];
+
+echo $msg->msg_html_all();
 ?>
 
-<form action="mail_doedit.php" method="post" name="main" id="main">
-<input type="hidden" name="mail_id" value="<?php echo $mail_id; ?>" />
+<form action="mail_doedit.php" method="post" name="main" id="main" autocomplete="off">
+   <?php csrf_get(); ?>
+<!-- honeypot fields -->
+<input type="text" style="display: none" id="fakeUsername" name="fakeUsername" value="" />
+<input type="password" style="display: none" id="fakePassword" name="fakePassword" value="" />
+
+<input type="hidden" name="mail_id" value="<?php ehe($mail_id); ?>" />
+<input type="hidden" name="new_account" value="<?php echo isset($new_account)?$new_account:false;?>" />
 <table class="tedit">
   <tr><th colspan="2"><b><?php __("Is this email enabled?"); ?></b></th></tr>
 
@@ -87,20 +94,20 @@ if (isset($error)) {
 </td>
     <td>
       <p>
-	<input type="radio" name="islocal" id="islocal0" class="inc" value="0"<?php cbox($islocal==0); ?> onclick="popoff()" /><label for="islocal0"><?php __("No"); ?></label>
-	<input type="radio" name="islocal" id="islocal1" class="inc" value="1"<?php cbox($islocal==1); ?> onclick="popon();" /><label for="islocal1"><?php __("Yes"); ?></label>
+	<input type="radio" name="islocal" id="islocal0" class="inc" value="0"<?php !isset($new_account)?cbox($islocal==0):""; ?> onclick="popoff()" /><label for="islocal0"><?php __("No"); ?></label>
+	<input type="radio" name="islocal" id="islocal1" class="inc" value="1"<?php !isset($new_account)?cbox($islocal==1):cbox($islocal==0); ?> onclick="popon();" /><label for="islocal1"><?php __("Yes"); ?></label>
       </p>
       <div id="poptbl">
 	<table class="tedit" >
           <tr id='mail_edit_pass' style='display: none;'><td colspan='2'><a href='javascript:mail_edit_pass();'><?php __("Click here to edit the existing password");?></a></td></tr>
-	  <tr id='mail_edit_pass1'><td><label for="pass"><?php __("Enter a POP/IMAP password"); ?></label></td><td><input type="password" class="int" name="pass" id="pass" value="" size="20" maxlength="32" autocomplete="off" /><?php display_div_generate_password(DEFAULT_PASS_SIZE,"#pass","#passconf"); ?></td></tr>
-	  <tr id='mail_edit_pass2'><td><label for="passconf"><?php __("Confirm password"); ?></label></td><td><input type="password" class="int" name="passconf" id="passconf" value="" size="20" maxlength="32" autocomplete="off" /></td></tr>
+	  <tr id='mail_edit_pass1'><td><label for="pass"><?php __("Enter a POP/IMAP password"); ?></label></td><td><input type="password" class="int" autocomplete="off" name="pass" id="pass" value="" size="20" maxlength="32" /><?php display_div_generate_password(DEFAULT_PASS_SIZE,"#pass","#passconf",$passwd_classcount); ?></td></tr>
+	  <tr id='mail_edit_pass2'><td><label for="passconf"><?php __("Confirm password"); ?></label></td><td><input type="password" class="int" autocomplete="off" name="passconf" id="passconf" value="" size="20" maxlength="32" /></td></tr>
 	  <tr><td><label for="quotamb"><?php __("Maximum allowed size of this Mailbox"); ?></label></td><td><input type="text" class="int intleft" style="text-align: right" name="quotamb" id="quotamb" value="<?php ehe($quotamb); ?>" size="7" maxlength="6" /><span class="int intright"><?php __("MB"); ?></span></td></tr>
 	</table>
       </div>
   </td></tr>
   <?php if ($islocal) { ?>
-<tr id="turnoff"><td colspan="2" class="alert alert-warning"><?php __("WARNING: turning POP/IMAP off will DELETE the stored messages in this email address."); ?></td></tr>
+<tr id="turnoff" style="display: none;"><td colspan="2" class="alert alert-warning"><?php __("WARNING: turning POP/IMAP off will DELETE the stored messages in this email address."); ?></td></tr>
 <?php } ?>
   <tr><th colspan="2"><b><?php __("Is it a redirection to other email addresses?"); ?></b></th></tr>
 
@@ -122,15 +129,7 @@ foreach($html as $h) echo $h;
 }
 ?>
 <script type="text/javascript">
-    $(document).ready(function() {
-    $('#email').focus();
-    <?php if (!$islocal) { ?>
-    popoff();
-    <?php } ?>
-    $('#turnoff').hide();
-    $('#pass').attr('autocomplete','off');
-    $('#passconf').attr('autocomplete','off');
-});
+
 function popoff() {
     $('#turnoff').show(); 
     $('#poptbl').addClass('grey'); 

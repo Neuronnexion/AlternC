@@ -1,5 +1,11 @@
 <?php
 
+/**
+ * LXC vm management code
+ *
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/
+ */
+
 require_once("../class/config.php");
 
 $fields = array (
@@ -53,21 +59,16 @@ include_once("head.php");
 <hr/>
 <br/>
 
-<?php if (!empty($error)) { ?>
-<div>
-<span class="alert alert-danger">
-   <?php echo implode(" - ", array_unique($error)); ?>
-
-</span>
-</div>
-<br/>
-<?php } ?>
+<?php
+echo $msg->msg_html_all();
+?>
 
 <div>
 <?php if (empty($infos)) { 
 ?>
 <p class="alert alert-info"><?php __("You can start a virtual machine."); ?></p>
 <form method="post" action="vm.php">
+   <?php csrf_get(); ?>
    <input type="hidden" name="action" value="start" />
 <input type="submit" class="inb ok" name="go" value="<?php __("Click here to start a virtual machine."); ?>" />
 </form>
@@ -85,6 +86,7 @@ include_once("head.php");
 ?>
 <p class="alert alert-info"><?php __("You can stop your virtual machine."); ?></p>
 <form method="post" action="vm.php">
+<?php csrf_get(); ?>
    <input type="hidden" name="action" value="stop" />
 <input type="submit" class="inb cancel" name="go" value="<?php __("Click here to stop your running virtual machine."); ?>" />
 </form>

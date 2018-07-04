@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: sql_users_rights.php,v 1.8 2006/02/16 16:26:28 nahuel Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,10 +15,14 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Nahuel ANGELINETTI
- Purpose of file: Manage the MySQL users of a member
- ----------------------------------------------------------------------
 */
+
+/**
+ * Manages MySQL users granted rights
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/
+ */
+
 require_once("../class/config.php");
 include_once("head.php");
 
@@ -35,18 +31,15 @@ $fields = array (
 );
 getFields($fields);
 ?>
-<h3><?php printf(_("MySQL Rights for %s"),$id) ?></h3>
+<h3><?php printf(_("Manage MySQL rights for user '%s'"),$id) ?></h3>
 <hr id="topbar"/>
 <br />
 <?php
 $r=$mysql->get_user_dblist($id);
-if (!$r) {
-  $error=$err->errstr();
-}
 
-if (!empty($error)) {
-  echo "<p class=\"alert alert-danger\">$error</p><p>&nbsp;</p>";
-  require_once('foot.php');
+if ($msg->has_msgs("ERROR")) {
+  require_once('sql_users_list.php');
+  exit();
 }
 
 if ($r) {
@@ -54,11 +47,11 @@ if ($r) {
 ?>
 
 <form method="post" action="sql_users_dorights.php">
-<input type="hidden" name="id" value="<?php echo $id; ?>" />
+    <?php csrf_get(); ?>
+<input type="hidden" name="id" value="<?php ehe($id); ?>" />
 <table cellspacing="0" cellpadding="4" class="tlist ombrage">
    <tr class="petit">
-     <th>&nbsp;</th>
-     <th>&nbsp;</th>
+    <th colspan="2"><?php __("Database"); ?></th>
      <th>SELECT</th>
      <th>INSERT</th>
      <th>UPDATE</th>

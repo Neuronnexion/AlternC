@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: adm_dnsweberror.php,v 1.4 2004/11/29 17:27:04 anonymous Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,14 +15,19 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Alan Garcia
- Purpose of file: Report domains and websites having error in the DB
- ----------------------------------------------------------------------
 */
+
+/**
+ * Report DNS and WEBSITES being in error mode in the DB
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/
+ */
+
 require_once("../class/config.php");
 
 if (!$admin->enabled) {
-	__("This page is restricted to authorized staff");
+	$msg->raise("ERROR", "admin", _("This page is restricted to authorized staff"));
+	echo $msg->msg_html_all();
 	exit();
 }
 
@@ -41,10 +38,7 @@ include_once("head.php");
 <hr id="topbar" />
  <br />
 <?php
-	if (isset($error) && $error) {
-	  echo "<p class=\"alert alert-danger\">$error</p>";
-	}
-
+echo $msg->msg_html_all();
 ?>
 <br/>
 <h3><?php __("List of the websites having errors in the domain database."); ?></h3>
@@ -61,7 +55,7 @@ include_once("head.php");
 
 <?php 
 $pair=0;
-$db->query("select sd.compte, m.login, sd.domaine, if(length(sub)>0,concat_ws('.',sd.sub,sd.domaine),sd.domaine) as fqdn, sd.valeur, dt.description, sd.web_result from sub_domaines sd,membres m, domaines_type dt where sd.web_action='OK' and length(sd.web_result)<>0 and upper(dt.name)=upper(sd.type) order by sd.domaine, sd.sub, sd.valeur;");
+$db->query("select sd.compte, m.login, sd.domaine, if(length(sub)>0,concat_ws('.',sd.sub,sd.domaine),sd.domaine) as fqdn, sd.valeur, dt.description, sd.web_result from sub_domaines sd,membres m, domaines_type dt where sd.web_action='OK' and length(sd.web_result)<>0 and upper(dt.name)=upper(sd.type) and sd.compte=m.uid order by sd.domaine, sd.sub, sd.valeur;");
 
 while($db->next_record()) {  ?>
 <tr class="lst">

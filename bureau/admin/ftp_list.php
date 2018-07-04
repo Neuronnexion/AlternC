@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: ftp_list.php,v 1.5 2003/06/10 13:16:11 root Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,10 +15,14 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Benjamin Sonntag
- Purpose of file: List ftp accounts of the user.
- ----------------------------------------------------------------------
 */
+
+/**
+ * List the FTP accounts of the user
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 include_once("head.php");
 
@@ -38,7 +34,6 @@ getFields($fields);
 $noftp=false;
 if (!$r=$ftp->get_list($domain)) {
 	$noftp=true;
-	$error=$err->errstr();
 }
 
 ?>
@@ -47,27 +42,24 @@ if (!$r=$ftp->get_list($domain)) {
 <br />
  
 <?php
-if (isset($error) && $error && !$noftp) {
-?>
-<p class="alert alert-danger"><?php echo $error ?></p>
-<?php } ?>
+echo $msg->msg_html_all();
 
-<?php if ($quota->cancreate("ftp")) { ?>
-<p>
-   <span class="inb add"><a href="ftp_edit.php?create=1"><?php __("Create a new ftp account"); ?></a></span> 
-</p>
-<?php  	} ?>
+if ($quota->cancreate("ftp")) { ?>
+  <p>
+   <span class="inb add"><a href="ftp_edit.php?create=1"><?php __("Create a new FTP account"); ?></a></span> 
+  </p>
+<?php
+}
 
-<?php
-	if ($noftp) {
-?>
-	<?php $mem->show_help("ftp_list_no"); ?>
-<?php
- include_once("foot.php"); 
-    } 
+if ($noftp) {
+  $mem->show_help("ftp_list_no");
+  include_once("foot.php");
+  exit;
+} 
 ?>
 
 <form method="post" action="ftp_del.php">
+   <?php csrf_get(); ?>
 <table class="tlist" id="ftp_list_table">
 <thead>
   <tr><th colspan="2"> </th><th><?php __("Enabled"); ?></th><th><?php __("Username"); ?></th><th><?php __("Folder"); ?></th></tr>
@@ -76,10 +68,10 @@ if (isset($error) && $error && !$noftp) {
 reset($r);
 while (list($key,$val)=each($r)) { ?>
 	<tr class="lst">
-		<td align="center"><input type="checkbox" class="inc" id="del_<?php echo $val["id"]; ?>" name="del_<?php echo $val["id"]; ?>" value="<?php echo $val["id"]; ?>" /></td>
-<td><div class="ina edit"><a href="ftp_edit.php?id=<?php echo $val["id"] ?>"><?php __("Edit"); ?></a></div></td>
+		<td align="center"><input type="checkbox" class="inc" id="del_<?php ehe($val["id"]); ?>" name="del_<?php ehe($val["id"]); ?>" value="<?php ehe($val["id"]); ?>" /></td>
+<td><div class="ina edit"><a href="ftp_edit.php?id=<?php eue($val["id"]); ?>"><?php __("Edit"); ?></a></div></td>
 
-		<td><a href='ftp_switch_enable.php?id=<?php echo $val['id'].'&amp;status='.( ($val['enabled'])?'0':'1' ) ;?>' onClick='return confirm("<?php __("Are you sure you want to change his status?"); ?>");'><?php 
+		<td><a href='ftp_switch_enable.php?id=<?php eue($val['id']); echo '&amp;status='.( ($val['enabled'])?'0':'1' ) ;?>' onClick='return confirm("<?php __("Are you sure you want to change his status?"); ?>");'><?php 
 if ( $val['enabled']) {
   echo "<img src='images/check_ok.png' alt=\""._("Enabled")."\"/>";
   echo "<span style='display:none;'>ENABLED</span>"; // for tablesorter
@@ -89,11 +81,11 @@ if ( $val['enabled']) {
 }
 
 ?></a></td>
-		<td><label for="del_<?php echo $val["id"]; ?>"><?php echo $val["login"] ?></label>
-                  <input type='hidden' name='names[<?php echo $val['id'];?>]' value='<?php echo $val["login"] ?>' />
+    <td><label for="del_<?php ehe($val["id"]); ?>"><?php ehe($val["login"]); ?></label>
+                  <input type="hidden" name="names[<?php ehe($val['id']); ?>]" value="<?php ehe($val["login"]); ?>" />
                 </td>
 		<td>
-                  <a href="bro_main.php?R=<?php echo urlencode(str_replace(getuserpath(),'', $val["dir"])); ?>"><code><?php echo str_replace(getuserpath(),'', $val["dir"]) ?></code></a>
+<a href="bro_main.php?R=<?php eue(str_replace(getuserpath(),'', $val["dir"])); ?>"><code><?php ehe(substr($val["dir"],strlen(getuserpath()) )); ?></code></a>
                   <?php if ( ! file_exists($val['dir'])) { echo " <span class=\"alerte\">"._("Directory not found")."</span>"; } ?>
                 </td>
 	</tr>
@@ -112,7 +104,7 @@ if ( $val['enabled']) {
 <?php __("Here are some configuration information you will need to configure your FTP application.");?>
 
 <ul>
-  <li><?php echo '<b>'._("Server:").'</b> '.$ftp->srv_name; ?></li>
+  <li><?php echo '<b>'._("Server:").'</b> '.$ftp->srv_proftpd; ?></li>
   <li><?php echo '<b>'._("FTP mode for data transfer:").'</b> '._("passive");?></li>
   <li><?php echo '<b>'._("User/password:").'</b> '._("the one you specified when you created the account. You can edit them in the panel.");?></li>
 </ul>

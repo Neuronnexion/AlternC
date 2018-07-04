@@ -1,15 +1,5 @@
 <?php
 /*
- $Id: adm_add.php,v 1.9 2006/01/24 05:03:30 joe Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2006 Le r�seau Koumbit Inc.
- http://koumbit.org/
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -25,52 +15,60 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Benjamin Sonntag
- Purpose of file: Member managment
- ----------------------------------------------------------------------
 */
+
+/**
+ * Form to add a new account to AlternC
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 include_once("head.php");
 
 if (!$admin->enabled) {
-	__("This page is restricted to authorized staff");
+	$msg->raise("ERROR", "admin", _("This page is restricted to authorized staff"));
+	echo $msg->msg_html_all();
 	exit();
 }
 
 $fields = array (
-	"canpass"    => array ("request", "integer", 1),
-	"login"      => array ("request", "string", null),
-	"pass"       => array ("request", "string", null),
-	"passconf"   => array ("request", "string", null),
-	"notes"      => array ("request", "string", null),
-	"nom"        => array ("request", "string", null),
-	"prenom"     => array ("request", "string", null),
-	"nmail"      => array ("request", "string", null),
-	"create_dom" => array ("request", "integer", 0),
+	"canpass"    => array ("post", "integer", 1),
+	"login"      => array ("post", "string", null),
+	"pass"       => array ("post", "string", null),
+	"passconf"   => array ("post", "string", null),
+	"notes"      => array ("post", "string", null),
+	"nom"        => array ("post", "string", null),
+	"prenom"     => array ("post", "string", null),
+	"nmail"      => array ("post", "string", null),
+	"create_dom" => array ("post", "integer", 0),
 );
 getFields($fields);
+
+$c=$admin->listPasswordPolicies();
+$passwd_classcount = $c['adm']['classcount'];
 
 ?>
 <h3><?php __("New AlternC account"); ?></h3>
 <hr id="topbar"/>
 <br />
 <?php
-if (isset($error) && $error) {
-	echo "<p class=\"alert alert-danger\">$error</p>";
-}
+echo $msg->msg_html_all();
 ?>
-<form method="post" action="adm_doadd.php" id="main" name="main">
+<form method="post" action="adm_doadd.php" id="main" name="main" autocomplete="off">
+  <?php csrf_get(); ?>
+
 <table class="tedit">
-<tr><th><label for="login"><?php __("Username"); ?></label></th><td>
-	<input type="text" class="int" name="login" id="login" value="<?php ehe($login); ?>" size="20" maxlength="16" />
+<tr><th><label for="login"><?php __("Username"); ?></label><span class="mandatory">*</span></th><td>
+	<input type="text" class="int" name="login" id="login" autocomplete="off" value="<?php ehe($login); ?>" size="20" maxlength="16" />
 </td></tr>
 <tr>
-	<th><label for="pass"><?php __("Initial password"); ?></label></th>
-	<td><input type="password" id="pass" name="pass" class="int" value="<?php ehe($pass); ?>" size="20" maxlength="64" /><?php display_div_generate_password(DEFAULT_PASS_SIZE,"#pass","#passconf"); ?></td>
+	<th><label for="pass"><?php __("Initial password"); ?></label><span class="mandatory">*</span></th>
+	<td><input type="password" id="pass" name="pass" autocomplete="off" class="int" value="<?php ehe($pass); ?>" size="20" maxlength="64" /><?php display_div_generate_password(DEFAULT_PASS_SIZE,"#pass","#passconf",$passwd_classcount); ?></td>
 </tr>
 <tr>
-	<th><label for="passconf"><?php __("Confirm password"); ?></label></th>
-	<td><input type="password" id="passconf" name="passconf" class="int" value="<?php ehe($passconf); ?>" size="20" maxlength="64" /></td>
+	<th><label for="passconf"><?php __("Confirm password"); ?></label><span class="mandatory">*</span></th>
+	<td><input type="password" id="passconf" name="passconf" autocomplete="off" class="int" value="<?php ehe($passconf); ?>" size="20" maxlength="64" /></td>
 </tr>
 <tr>
 	<th><label><?php __("Can he change its password"); ?></label></th>
@@ -88,7 +86,7 @@ if (isset($error) && $error) {
 	<td><input class="int" type="text" id="nom" name="nom" value="<?php ehe($nom); ?>" size="16" maxlength="128" />&nbsp;/&nbsp;<input type="text" name="prenom" id="prenom" value="<?php ehe($prenom); ?>" class="int" size="16" maxlength="128" /></td>
 </tr>
 <tr>
-	<th><label for="nmail"><?php __("Email address"); ?></label></th>
+	<th><label for="nmail"><?php __("Email address"); ?></label><span class="mandatory">*</span></th>
 	<td><input type="text" name="nmail" id="nmail" class="int" value="<?php ehe($nmail); ?>" size="30" maxlength="128" /></td>
 </tr>
 <tr>
@@ -102,7 +100,7 @@ if (isset($error) && $error) {
 <tr>
     <th>
         <?php 
-          __("Wich database server for this user ?");
+          __("Associate this new user to this database server:");
           echo "<br/>";
           echo "<i>"._("Warning: you can't change it after the creation of the user.")."</i>";
         ?>
@@ -144,7 +142,6 @@ if (isset($error) && $error) {
 </form>
 <script type="text/javascript">
  document.forms['main'].login.focus();
- document.forms['main'].setAttribute('autocomplete', 'off');
 </script>
 
 <?php include_once("foot.php"); ?>

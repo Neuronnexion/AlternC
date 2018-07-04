@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: menu.php,v 1.9 2005/01/18 22:16:10 anarcat Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,20 +15,26 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file:
- Purpose of file:
- ----------------------------------------------------------------------
 */
+
+/**
+ * Main left menu of AlternC, uses Hooks 
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/
+ */
+
 require_once("../class/config.php");
 
 // Getting logo
 $logo = variable_get('logo_menu', '' ,'You can specify a logo for the menu, example /images/my_logo.png .', array('desc'=>'URL','type'=>'string'));
-if ( empty($logo) ||  ! $logo ) { 
-  $logo = 'images/logo3.png'; 
-}
 
+echo '<div class="menutoplogo">';
+if ( ! empty($logo) &&  ! is_null($logo)) {
+  echo "<img src=\"".$logo."\" border='0' alt='AlternC' width='45px' height='46px' />";
+}
+echo "<img src='images/logo3.png' border='0' alt='AlternC' ".(( ! empty($logo) &&  ! is_null($logo))?"width='140px'":"")." height='40px' />";
+echo "</div>";
 ?>
-<img src="<?php echo $logo; ?>" class="menutoplogo" border="0" alt="AlternC" width='190px' height='46px' />
 <p class="currentuser"><?php echo sprintf(_("Welcome %s"),$mem->user["login"]); ?></p>
 
 <?php
@@ -44,13 +42,11 @@ if ( empty($logo) ||  ! $logo ) {
 $obj_menu = $menu->getmenu();
 
 foreach ($obj_menu as $k => $m ) {
-  echo "<style>.$k-menu .menu-title { background-image: url('".$m['ico']."'); background-repeat: no-repeat; background-position: 8px 3px; padding-left: 30px;} </style>";
   echo "<div class='menu-box {$k}-menu ".(!empty($m['divclass'])?$m['divclass']:'')."'>\n";
   echo "  <a href=\"".$m['link']."\"";
   if (!empty($m['target'])) echo " target='". $m['target']."' ";
   echo ">\n";
   echo "    <span class='menu-title'>\n";
-  //echo "      <img src='".$m['ico']."' alt=\"".$m['title']."\" width='16px' height='16px' />&nbsp;";
   echo "        <span class='";
   if (!empty($m['class'])) echo $m['class']." ";
   echo "'>"; // fin span ouvrant
@@ -60,23 +56,13 @@ foreach ($obj_menu as $k => $m ) {
     echo " (".$m['quota_used']."/".$m['quota_total'].")";
     echo "</span>\n";
   } // if there are some quota
-  if ( empty($m['links'])) {
-    $i = "images/menu_right.png";
-    // img machin
-  } else {
-    if ( $m['visibility'] ) {
-      $i="/images/menu_moins.png";
-    } else {
-      $i="/images/menu_plus.png";
-    }
-  }
-  echo "      <img src='$i' alt='' style='float:right;' width='16px' height='16px' id='menu-$k-img'/>\n";
   echo "      </span>";
   echo "    </span>\n";
   echo "  </a>\n";
 
   if (!empty($m['links'])) {
-    echo "<div class='menu-content' id='menu-$k'>";
+  if ( $m['visibility']) $visible=""; else $visible="style=\"display: none\"";
+    echo "<div class='menu-content' id='menu-$k' $visible >";
     echo "  <ul>";
     foreach( $m['links'] as $l ) {
       if ( $l['txt'] == 'progressbar' ) {
@@ -101,7 +87,6 @@ foreach ($obj_menu as $k => $m ) {
     echo "</div>";
   }
   echo "</div>";
-  if (! $m['visibility']) echo "<script type='text/javascript'>menu_toggle('menu-$k');</script>\n";
 
 }
 

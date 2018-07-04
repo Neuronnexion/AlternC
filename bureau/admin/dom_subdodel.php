@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: dom_subdodel.php,v 1.2 2003/06/10 11:18:27 root Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,41 +15,37 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file:
- Purpose of file:
- ----------------------------------------------------------------------
 */
+
+/**
+ * After confirmation of a subdomain deletion, do it here.
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 include_once("head.php");
 
 $fields = array (
-	"sub_domain_id"    => array ("request", "integer", ""),
+	"sub_domain_id"    => array ("post", "integer", ""),
 );
 getFields($fields);
 
 $dom->lock();
-if (!$r=$dom->get_sub_domain_all($sub_domain_id)) {
-        $error=$err->errstr();
-}
+$r=$dom->get_sub_domain_all($sub_domain_id);
+$dt=$dom->domains_type_lst();
 $dom->unlock();
 
-
-$dt=$dom->domains_type_lst();
 if (!$isinvited && $dt[strtolower($r['type'])]["enable"] != "ALL" ) {
-  __("This page is restricted to authorized staff");
+  $msg->raise("ERROR", "dom", _("This page is restricted to authorized staff"));
+  echo $msg->msg_html_all();
   exit();
 }
 
 
 $dom->lock();
-if (!$r=$dom->get_sub_domain_all($sub_domain_id)) {
-        $error=$err->errstr();
-}
-
-if (!$dom->del_sub_domain($sub_domain_id)) {
-	$error=$err->errstr();
-}
-
+$r=$dom->get_sub_domain_all($sub_domain_id);
+$dom->del_sub_domain($sub_domain_id);
 $dom->unlock();
 
 ?>
@@ -65,15 +53,15 @@ $dom->unlock();
 <hr id="topbar"/>
 <br />
 <?php
-	if (isset($error) && $error) {
-		echo "<p class=\"alert alert-danger\">$error</p>";
+	if ($msg->has_msgs("ERROR")) {
+		echo $msg->msg_html_all();
 		include_once("foot.php");
 		exit();
 	} else {
         $t = time();
-	// XXX: we assume the cron job is at every 5 minutes
-        $error=strtr(_("The modifications will take effect at %time.  Server time is %now."), array('%now' => date('H:i:s', $t), '%time' => date('H:i:s', ($t-($t%300)+300)))); 
-	    echo "<p class=\"alert alert-info\">".$error."</p>";
+	// TODO: we assume the cron job is at every 5 minutes
+        $msg->raise("INFO", "dom", _("The modifications will take effect at %s.  Server time is %s."), array(date('H:i:s', ($t-($t%300)+300)), date('H:i:s', $t))); 
+	echo $msg->msg_html_all();
 	}
 ?>
 <p><span class="ina"><a href="dom_edit.php?domain=<?php echo urlencode($r['domain']) ?>"><?php __("Click here to continue"); ?></a></span></p>

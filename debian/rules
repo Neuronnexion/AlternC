@@ -7,26 +7,16 @@
 
 # Uncomment this to turn on verbose mode. 
 export DH_VERBOSE=1
-MAJOR=$(shell sed -ne 's/^[^(]*(\([^)]*\)).*/\1/;1p' debian/changelog)
-REV=$(shell env LANG=C svn info --non-interactive | awk '/^Revision:/ { print $$2 }')
-VERSION="${MAJOR}~svn${REV}"
-export VERSION
 
 override_dh_install:
 #dh install
 	$(MAKE) install-alternc DESTDIR=$(CURDIR)/debian/alternc
 	$(MAKE) install-squirrelmail DESTDIR=$(CURDIR)/debian/alternc-squirrelmail
 	$(MAKE) install-roundcube DESTDIR=$(CURDIR)/debian/alternc-roundcube
-	$(MAKE) install-upnp DESTDIR=$(CURDIR)/debian/alternc-upnp
 	$(MAKE) install-awstats DESTDIR=$(CURDIR)/debian/alternc-awstats
 	$(MAKE) install-slave DESTDIR=$(CURDIR)/debian/alternc-slave
+	$(MAKE) install-api DESTDIR=$(CURDIR)/debian/alternc-api
 
 %:
 	dh $@
 
-
-build-snapshot:
-	@echo "building a package based on the current snapshot (${VERSION})"
-	svn update || true
-	svn export . ../alternc-${VERSION}
-	cd ../alternc-${VERSION} && sed -i -e '1s/)/~svn${REV})/' debian/changelog && debuild

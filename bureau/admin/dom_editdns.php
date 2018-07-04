@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: dom_editdns.php,v 1.3 2003/06/10 11:18:27 root Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,42 +15,38 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Benjamin Sonntag
- Purpose of file: Edit the dns parameters of a domain
- ----------------------------------------------------------------------
 */
+
+/**
+ * Edit the DNS parameters of a domain
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 include_once("head.php");
 
 $fields = array (
 	"domain"    => array ("request", "string", ""),
-	"dns"       => array ("request", "integer", 1),
-	"email"     => array ("request", "integer", 1),
-	"ttl"       => array ("request", "integer", 86400),
+	"dns"       => array ("post", "integer", 1),
+	"email"     => array ("post", "integer", 1),
+	"ttl"       => array ("post", "integer", 86400),
 );
 getFields($fields);
 
 $dom->lock();
 
-if (!$dom->edit_domain($domain,$dns,$email,0,$ttl)) {
-  $error=$err->errstr();
-  include("dom_edit.php");
-  $dom->unlock();
-  exit();
- }
+$r = $dom->get_domain_all($domain);
+if ($r["dns"] == $dns && $r["mail"] == $email && $r["zonettl"] == $ttl) {
+  $msg->raise("INFO", "dom", _("No change has been requested..."));
+} else if ($dom->edit_domain($domain,$dns,$email,0,$ttl)) {
+  $msg->raise("INFO", "dom", _("The domain %s has been changed."),$domain);
+  $t = time();
+// TODO: we assume the cron job is at every 5 minutes
+  $msg->raise("INFO", "dom", _("The modifications will take effect at %s.  Server time is %s."), array(date('H:i:s', ($t-($t%300)+300)), date('H:i:s', $t)));
+}
 $dom->unlock();
 
+include("dom_edit.php");
+exit();
 ?>
-<h3><?php printf(_("Editing domain %s"),$domain); ?></h3>
-<hr id="topbar"/>
-<br />
-<p>
-<?php
-  printf(_("The domain %s has been changed."),$domain);
-  $t = time();
-// XXX: we assume the cron job is at every 5 minutes
-  print strtr(_("The modifications will take effect at %time.  Server time is %now."), array('%now' => date('H:i:s', $t), '%time' => date('H:i:s', ($t-($t%300)+300)))); 
-?><br /><br />
-<span class="ina"><a href="dom_edit.php?domain=<?php echo urlencode($domain) ?>" ><?php __("Click here to continue"); ?></a></span>
-</p>
-<?php include_once("foot.php"); ?>

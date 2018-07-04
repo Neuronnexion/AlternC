@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: adm_tldedit.php,v 1.2 2003/06/10 12:14:09 root Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,14 +15,20 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Benjamin Sonntag
- Purpose of file: Manage allowed TLD on the server
- ----------------------------------------------------------------------
 */
+
+/**
+ * Manage allow TLDs domains to be installed here
+ * soon deprecated
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/  
+ */
+
 require_once("../class/config.php");
 
 if (!$admin->enabled) {
-        __("This page is restricted to authorized staff");
+	$msg->raise("ERROR", "admin", _("This page is restricted to authorized staff"));
+	echo $msg->msg_html_all();
         exit();
 }
 
@@ -41,7 +39,6 @@ getFields($fields);
 
 $mode=$admin->gettld($tld);
 if ($mode===false) {
-	$error=$err->errstr();
 	include("adm_tld.php");
 	exit();
 }
@@ -53,15 +50,14 @@ include_once("head.php");
 <hr id="topbar"/>
 <br />
 <?php
-        if (isset($error) && $error) {
-                echo "<p class=\"alert alert-danger\">$error</p>";
-        }
+echo $msg->msg_html_all();
 ?>
 <h3><?php __("Edit a TLD"); ?></h3>
 
 <form method="post" action="adm_tlddoedit.php">
+  <?php csrf_get(); ?>
 <table id="main" class="tedit">
-<tr><th><label for="tld"><?php __("TLD"); ?></label></th><td><code><?php echo $tld; ?></code><input type="hidden" name="tld" id="tld" value="<?php echo $tld; ?>" /></td></tr>
+<tr><th><label for="tld"><?php __("TLD"); ?></label></th><td><code><?php echo $tld; ?></code><input type="hidden" name="tld" id="tld" value="<?php ehe($tld); ?>" /></td></tr>
 <tr><th><label for="mode"><?php __("Allowed Mode"); ?></label></th><td><select name="mode" class="inl" id="mode">
         <?php $admin->selecttldmode($mode); ?>
 </select></td></tr>

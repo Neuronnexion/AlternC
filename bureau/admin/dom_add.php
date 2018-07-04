@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: dom_add.php,v 1.5 2003/06/10 13:16:11 root Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,19 +15,23 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Benjamin Sonntag
- Purpose of file: Add a new domain
- ----------------------------------------------------------------------
 */
+
+/**
+ * Form to add a new domain to an AlternC's account
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 
 include_once("head.php");
 
 $fields = array (
-	"newdomain"   => array ("request", "string", ""),
-	"yndns"   => array ("request", "integer", 0),
-	"newisslave"   => array ("request", "integer", 0),
-	"slavedom"   => array ("request", "string", ""),
+	"newdomain"   => array ("post", "string", ""),
+	"yndns"   => array ("post", "integer", 0),
+	"newisslave"   => array ("post", "integer", 0),
+	"slavedom"   => array ("post", "string", ""),
 );
 getFields($fields);
 
@@ -45,23 +41,25 @@ if (!isset($dns)) $dns="1";
 <h3><?php __("Domain hosting"); ?></h3>
 <hr />
 <?php
-if (!$quota->cancreate("dom")) { ?>
-<p class="alert alert-danger"><?php echo _("You cannot add any new domain, your quota is over.")." "._("Contact your administrator for more information."); ?></p>
-<?php
-exit();
+if (!$quota->cancreate("dom")) {
+  $msg->raise("ALERT", "dom", _("You cannot add any new domain, your quota is over.")." "._("Contact your administrator for more information."));
+  echo $msg->msg_html_all();
+  exit();
 }
-if (isset($error) && $error) echo "<p class=\"alert alert-danger\">$error</p>";
+echo $msg->msg_html_all();
 ?>
 <form method="post" action="dom_doadd.php" id="main">
+  <?php csrf_get(); ?>
 <p>
-<label for="newdomain"><b><?php __("Domain name"); ?> :</b></label> <span class="int" id="newdomwww">www.</span><input type="text" class="int" id="newdomain" name="newdomain" value="<?php ehe($newdomain); ?>" size="32" maxlength="255" /> <a class="inb configure" href="dom_import.php"><?php __("Advanced import"); ?></a>
+<label for="newdomain"><b><?php __("Domain name"); ?> :</b></label> <span class="int" id="newdomwww">www.</span><input type="text" class="int" id="newdomain" name="newdomain" value="<?php ehe($newdomain); ?>" size="32" maxlength="255" /> <a class="inb settings" href="dom_import.php"><?php __("Advanced import"); ?></a>
 </p>
 <p>
   <input type="checkbox" name="dns" class="inc" value="1" id="yndns"<?php cbox($dns=="1"); ?>/>&nbsp;<label for="yndns"><?php __("host my dns here"); ?></label>
 </p>
 <?php
   $q = $quota->getquota("dom");
-if ($q["u"]>0) {
+$dl=$dom->get_domain_list($cuid);
+if ($q["u"]>0 && count($dl)) {
 ?> 
 <fieldset>
 	<legend>
@@ -71,9 +69,7 @@ if ($q["u"]>0) {
    <input type="radio" id="newisslave0" name="newisslave" value="0"<?php cbox($newisslave==0); ?>/><label for="newisslave0"><?php __("No: This domain will have its own folder."); ?></label>
 <br />
    <input type="radio" id="newisslave1" name="newisslave" value="1"<?php cbox($newisslave==1); ?>/><label for="newisslave1"><?php __("Yes, redirect this new domain to this one:"); ?> </label> <select name="slavedom" id="slavedom" class="inl">
- <option value=""><?php __("-- Choose a domain --"); ?></option>
 <?php
-$dl=$dom->get_domain_list($cuid);
   $ddl=array();
   foreach($dl as $d) {
     $ddl[$d]=$d;

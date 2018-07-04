@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: ftp_list.php,v 1.5 2003/06/10 13:16:11 root Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,10 +15,14 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Benjamin Sonntag
- Purpose of file: List ftp accounts of the user.
- ----------------------------------------------------------------------
 */
+
+/**
+ * Import of DNS informations from an existing zone, transformation into AlternC's system zone.
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 include_once("head.php");
 
@@ -45,16 +41,16 @@ $domain=trim($domain);
 <br />
 
 <?php
-if (!empty($error)) {
-  echo '<p class="alert alert-danger">'.$error.'</p>';
-} 
+if ( !empty($zone) && empty($domain) ) {
+  $msg->raise("ALERT", "dom", _("The domain field seems to be empty"));
+}
+
+echo $msg->msg_html_all();
 ?>
 
 <?php if ( !empty($zone) ) { 
-if ( empty($domain) ) {
-  echo '<p class="alert alert-danger">'._("The domain field seems to be empty").'</p>';
-} else { ?>
-  <?php __("Here is my proposition. Modify your zone until my proposition seems good to you"); ?>
+if ( !empty($domain) ) {
+  __("Here is my proposition. Modify your zone until my proposition seems good to you"); ?>
   <table class="tlist">
   <tr><th colspan=3><h2><?php printf(_("Working on %s"),$domain); ?></h2></th></tr>
   <tr>
@@ -90,13 +86,14 @@ if ($save) {
 
 
 <form method="post" action="dom_import.php">
+    <?php csrf_get(); ?>
   <table>
     <tr>
       <td>
         <label for="domain"><?php __("Enter the domain name you want to import") ; ?></label>
       </td>
       <td>
-        <input type="text" size="40" name="domain" value="<?php echo $domain; ?>" />
+        <input type="text" size="40" name="domain" value="<?php ehe($domain); ?>" />
       </td>
     </tr>
     <tr>

@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: sql_dorestore.php,v 1.4 2004/08/31 14:25:50 anonymous Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,10 +15,14 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Benjamin Sonntag
- Purpose of file: Manage the MySQL Restore
- ----------------------------------------------------------------------
 */
+
+/** 
+ * restore (do it) a MySQL database
+ *
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/
+ */
+
 require_once("../class/config.php");
 
 include_once("head.php");
@@ -43,9 +39,8 @@ getFields($fields);
 
 <?php
 
-if (!$r=$mysql->get_mysql_details($id)) {
-        $error=$err->errstr();
-}
+$r=$mysql->get_mysql_details($id);
+
 if (! $r["enabled"]) { 
   echo "<p class=\"alert alert-danger\">"._("You currently have no database defined")."</p>";
   include_once("foot.php");
@@ -57,14 +52,11 @@ if (! $r["enabled"]) {
 
 <p>
 <?php
-if (!$mysql->restore($restfile,true,$id))  {
-  $error=$err->errstr();
-} else {
-  $error=_("Your database has been restored, check out the previous text for error messages.");
-} // if mysql->restore
+if ($mysql->restore($restfile,true,$id))  {
+  $msg->raise("INFO", "mysql", _("Your database have been restored, check out the previous text for error messages."));
+}
 
-echo "<p class=\"alert alert-danger\">$error</p><p>&nbsp;</p>";
-
+echo $msg->msg_html_all();
 ?>
 </p>
 <?php include_once("foot.php"); ?>

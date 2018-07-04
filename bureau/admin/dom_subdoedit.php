@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: dom_subdoedit.php,v 1.1.1.1 2003/03/26 17:41:29 root Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,53 +15,64 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Benjamin Sonntag
- Purpose of file: Edit a domain parameters
- ----------------------------------------------------------------------
 */
+
+/**
+ * Edit a subdomain parameters 
+ *
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 
 $fields = array (
-	"domain"    => array ("request", "string", ""),
-	"sub"       => array ("request", "string", ""),
-	"type"      => array ("request", "string", $dom->type_local),
-  	"sub_domain_id" => array ("request", "integer", ""),
+	"domain"    => array ("post", "string", ""),
+	"sub"       => array ("post", "string", ""),
+	"type"      => array ("post", "string", $dom->type_local),
+  	"sub_domain_id" => array ("post", "integer", 0),
 );
 getFields($fields);
 
 // here we get a dynamic-named value
 $dynamicvar="t_$type";
+$httpsvar="https_$type";
 $fields = array (
-  "$dynamicvar"   => array ("request", "string", ""),
+  "$dynamicvar"   => array ("post", "string", ""),
+  "$httpsvar"   => array ("post", "string", ""),
 );
 getFields($fields);
 $value=$$dynamicvar;
+$https=$$httpsvar;
 // The dynamic value is now in $value
 
 $dom->lock();
 
 $dt=$dom->domains_type_lst();
 if ( (!isset($isinvited) || !$isinvited) && $dt[strtolower($type)]["enable"] != "ALL" ) {
-  __("This page is restricted to authorized staff");
+  $msg->raise("ERROR", "dom", _("This page is restricted to authorized staff"));
+  include("dom_edit.php");
   exit();
 }
 
-
-
-$r=$dom->set_sub_domain($domain,$sub,$type,$value, $sub_domain_id);
+if (empty($sub_domain_id)) $sub_domain_id=null;
+$r=$dom->set_sub_domain($domain, $sub, $type, $value, $sub_domain_id, $https);
 
 $dom->unlock();
 
 if (!$r) {
-  $error=$err->errstr();
-  $noread=true;
-  include("dom_subedit.php"); 
-  exit();
+  if ($sub_domain_id!=0) {
+    $noread=true;
+    include("dom_subedit.php"); 
+  } else {
+    // it was a creation, not an edit
+    include("dom_edit.php");
+  }
+    exit();
 } else {
   $t = time();
-  // XXX: we assume the cron job is at every 5 minutes
+  // TODO: we assume the cron job is at every 5 minutes
   $noread=false;
-  $error=strtr(_("The modifications will take effect at %time. Server time is %now."), array('%now' => date('H:i:s', $t), '%time' => date('H:i:s', ($t-($t%300)+300))));
+  $msg->raise("INFO", "dom", _("The modifications will take effect at %s. Server time is %s."), array(date('H:i:s', ($t-($t%300)+300)), date('H:i:s', $t)));
   foreach($fields as $k=>$v) unset($$k);
 }
 include("dom_edit.php");

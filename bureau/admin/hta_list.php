@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: hta_list.php,v 1.5 2003/08/20 13:08:28 root Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,17 +15,19 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Franck Missoum
- Purpose of file: List the users in a protected folder
- ----------------------------------------------------------------------
 */
+
+/**
+ * List the folders having password-protection in the account's home
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 include_once("head.php");
 
-if (!$r=$hta->ListDir()) {
-	$error=$err->errstr();
-} else {
-	reset($r);
+if ($r=$hta->ListDir()) {
+  reset($r);
 }
 
 ?>
@@ -41,17 +35,15 @@ if (!$r=$hta->ListDir()) {
 <hr id="topbar"/>
 <br />
 <?php
-	if (isset($error) && $error) {
-		echo "<p class=\"alert alert-danger\">$error</p>";
-	}
+echo $msg->msg_html_all();
 
-	if (!is_array($r)) {
-		echo "<p><span class=\"ina\"><a href=\"hta_add.php\">"._("Protect a folder")."</a></span><br />";
-		$mem->show_help("hta_list");
-		echo "</p>";
-		include_once("foot.php");
-		exit();
-	}
+if (!is_array($r)) {
+  echo "<p><span class=\"ina\"><a href=\"hta_add.php\">"._("Protect a folder")."</a></span><br />";
+  $mem->show_help("hta_list");
+  echo "</p>";
+  include_once("foot.php");
+  exit();
+}
 
 ?>
 
@@ -64,6 +56,7 @@ $mem->show_help("hta_list2");
 </p>
 
 <form method="post" action="hta_del.php">
+  <?php csrf_get(); ?>
 <table class="tlist">
   <tr><th colspan="2"> </th><th><?php __("Folder"); ?></th></tr>
 <?php
@@ -72,18 +65,18 @@ $mem->show_help("hta_list2");
 for($i=0;$i<count($r);$i++){
 ?>
 	<tr  class="lst">
-		<td align="center"><input type="checkbox" class="inc" name="del_<?php echo $r[$i] ?>" value="<?php echo $r[$i] ?>" /></td>
+		<td align="center"><input type="checkbox" class="inc" name="del_<?php ehe($r[$i]); ?>" value="<?php ehe($r[$i]); ?>" /></td>
 		<td>
-<div class="ina lock"><a href="hta_edit.php?dir=<?php echo $r[$i]?>"><?php __("Edit login and passwords"); ?></a></div>
+<div class="ina lock"><a href="hta_edit.php?dir=<?php eue($r[$i]); ?>"><?php __("Edit login and passwords"); ?></a></div>
 </td>
-		<td><?php echo '<a href="bro_main.php?R='.urlencode($r[$i]).'">'.htmlspecialchars($r[$i]).'</a>'; ?></td>
+    <td><?php echo '<a href="bro_main.php?R='.ehe($r[$i],false).'">'.ehe($r[$i],false).'</a>'; ?></td>
 	</tr>
     <?php
 	}
 ?>
 </table>
 <br />
-<input type="submit" class="ina up" name="submit" value="<?php __("Unprotect the checked folders"); ?>" />
+<input type="submit" class="ina unlock" name="submit" value="<?php __("Unprotect the checked folders"); ?>" />
 			<span class="ina add"><a href="hta_add.php"><?php __("Protect a folder"); ?></a></span>
 </form>
 

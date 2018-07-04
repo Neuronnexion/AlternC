@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: adm_tld.php,v 1.4 2004/11/29 17:27:04 anonymous Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,14 +15,20 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Benjamin Sonntag
- Purpose of file: Manage allowed TLD on the server
- ----------------------------------------------------------------------
 */
+
+/**
+ * Manages Allowed TLD's to be installed as domain names on the server
+ * soon deprecated due to all those new TLDs 
+ *
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/  
+ */
+
 require_once("../class/config.php");
 
 if (!$admin->enabled) {
-	__("This page is restricted to authorized staff");
+	$msg->raise("ERROR", "admin", _("This page is restricted to authorized staff"));
+	echo $msg->msg_html_all();
 	exit();
 }
 
@@ -41,13 +39,13 @@ getFields($fields);
 
 
 if (is_array($sel)) {
-	$error="";
 	for($i=0;$i<count($sel);$i++) {
 		if (!$admin->deltld($sel[$i])) {
-			$error.=_("Some TLD cannot be deleted...")." : ".$sel[$i]."<br />";
+			$msg->raise("ERROR", "admin", _("Some TLD cannot be deleted...")." : ".$sel[$i]);
 		}
 	}
-	if (!$error) $error=_("The requested TLD has been deleted");
+	if (!$msg->has_msgs("ERROR"))
+		$msg->raise("INFO", "admin", _("The requested TLD has been deleted"));
 }
 
 include_once("head.php");
@@ -57,9 +55,7 @@ include_once("head.php");
 <hr id="topbar" />
 <br />
 <?php
-	if (isset($error) && $error) {
-	  echo "<p class=\"alert alert-danger\">$error</p>";
-	}
+echo $msg->msg_html_all();
 
 $c=$admin->listtld();
 
@@ -69,6 +65,7 @@ $c=$admin->listtld();
 </p>
 <p><span class="ina"><a href="adm_tldadd.php"><?php __("Add a new TLD"); ?></a></span></p>
 <form method="post" action="adm_tld.php" name="main" id="main">
+  <?php csrf_get(); ?>
 <table class="tlist">
 <tr><th colspan="2"> </th><th><?php __("TLD"); ?></th><th><?php __("Allowed Mode"); ?></th></tr>
 <?php
@@ -76,9 +73,9 @@ for($i=0;$i<count($c);$i++) {
 ?>
 
 <tr class="lst">
-<td><input id="sel<?php echo $i; ?>" type="checkbox" name="sel[]" class="inc" value="<?php echo $c[$i]["tld"]; ?>" /></td>
-   <td><div class="ina edit"><a href="adm_tldedit.php?tld=<?php echo urlencode($c[$i]["tld"]); ?>"><?php __("Edit"); ?></a></div></td>
-<td><label for="sel<?php echo $i; ?>"><?php echo $c[$i]["tld"]; ?></label></td>
+<td><input id="sel<?php echo $i; ?>" type="checkbox" name="sel[]" class="inc" value="<?php ehe($c[$i]["tld"]); ?>" /></td>
+   <td><div class="ina edit"><a href="adm_tldedit.php?tld=<?php eue($c[$i]["tld"]); ?>"><?php __("Edit"); ?></a></div></td>
+    <td><label for="sel<?php echo $i; ?>"><?php ehe($c[$i]["tld"]); ?></label></td>
 <td><?php __($admin->tldmode[$c[$i]["mode"]]); ?></td></tr>
 
 <?php

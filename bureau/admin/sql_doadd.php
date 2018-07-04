@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: sql_doadd.php,v 1.2 2003/06/10 07:20:29 root Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,21 +15,28 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file:
- Purpose of file:
- ----------------------------------------------------------------------
 */
+
+/**
+ * Create a new MySQL database for the account 
+ *
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/
+ */
+
 require_once("../class/config.php");
 
 $fields = array (
         "dbn"                 => array ("post", "string", ""),
 );
+
 getFields($fields);
+
 if (!$quota->cancreate("mysql")) {
-  $error=_("Can't create a database: your quota is over");
+  $msg->raise("ALERT", "mysql", _("Can't create a database: your quota is over"));
   include("sql_list.php");
   exit;
 }
+
 $q=$quota->getquota("mysql");
 
 if($q['u'] > 0){
@@ -46,13 +45,10 @@ if($q['u'] > 0){
   $dbname=$mem->user["login"];
 }
 
-if(!$mysql->add_db($dbname)) {
-  $error=$err->errstr();
-  include("sql_list.php");
-  exit;
+if($mysql->add_db($dbname)) {
+  $msg->raise("INFO", "mysql", _("The database '%s' has been created."),$dbname);
 }
 
 header('Location: sql_getparam.php?dbname='.htmlentities($dbname));
-#include("sql_list.php");
 
 ?>

@@ -30,13 +30,13 @@ function usage() {
   global $argv;
   // putting {$argv[0]} or $argv[0] in the heredoc fails
   $wtfphp = $argv[0];
-  $u = <<<EOF
+  $u = '
 Usage: $wtfphp <email> <alias> ...
 
 email: full email adress, including domain, which must exist
 alias: one or many aliases the email should forward to, space separated
 
-EOF;
+';
   error_log($u);
   exit(1);
 }
@@ -52,7 +52,7 @@ $recipients = array_slice($argv, 2); // rest is recipients
 // there's no function to do that, oddly enough...
 // there's one to extract the compte from the mail_id (!) but we
 // haven't created it yet...
-$db->query('SELECT id,compte FROM domaines WHERE domaine="'.addslashes($domain).'"');
+$db->query('SELECT id,compte FROM domaines WHERE domaine=?',array($domain));
 if ($db->next_record()) {
   $compte = $db->f('compte');
   $domain_id = $db->f('id');
@@ -81,7 +81,7 @@ if (is_null($password)) {
 $quotas = $default_quotas;
 $r = join(", ", $recipients);
 
-print <<<EOF
+print '
 user: $user
 domain: $domain
 compte: $compte
@@ -89,7 +89,7 @@ password: $password
 quota: $default_quotas
 recipients: $r
 
-EOF;
+';
 
 if ($dryrun) {
   error_log('not creating email because of $dryrun is true');
@@ -109,7 +109,7 @@ print "cuid: $cuid\n";
  * from scratch
  */
 if (!($mail_id = $mail->create($domain_id, $user))) {
-  error_log('failed to create: ' . $err->errstr());
+  error_log('failed to create: ' . $msg->msg_str());
   exit(4);
 }
 
@@ -120,8 +120,8 @@ if (!($mail_id = $mail->create($domain_id, $user))) {
  * no idea why this is a different function.
  */
 if (!$mail->set_passwd($mail_id,$password)) {
-  error_log("failed to set password on mail $mail_id: " . $err->errstr());
-  exit(5);
+    error_log("failed to set password on mail $mail_id: " . $msg->msg_str());
+    exit(5);
 }
 
 /*  function set_details($mail_id, $islocal, $quotamb,
@@ -132,8 +132,8 @@ if (!$mail->set_passwd($mail_id,$password)) {
  * if we have no aliases, it's a mailbox. deal with it.
  */
 if (!$mail->set_details($mail_id, !count($recipients), $quota, join("\n", $recipients))) {
-  error_log('failed to set details: ' . $err->errstr());
-  exit(6);
+    error_log('failed to set details: ' . $msg->msg_str());
+    exit(6);
 }
 
 // maybe we need to call the hooks? i don't know!

@@ -1,10 +1,6 @@
 <?php
 /*
  ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2000-2012 by the AlternC Development Team.
- https://alternc.org/
- ----------------------------------------------------------------------
  LICENSE
 
  This program is free software; you can redistribute it and/or
@@ -19,16 +15,21 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Purpose of file: Delete one or more mailboxes
- ----------------------------------------------------------------------
 */
+
+/**
+ * Form to confirm the deletion of an email account
+ * delete it when confirmed.
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 
-
 $fields = array (
-	"d"    => array ("request", "array", ""),
-	"domain_id"  => array ("request", "integer", ""),
-	"confirm" => array("request", "string", "n"),
+	"d"    => array ("post", "array", ""),
+	"domain_id"  => array ("post", "integer", ""),
+	"confirm" => array("post", "string", "n"),
 );
 getFields($fields);
 
@@ -41,10 +42,19 @@ reset($d);
 include_once ("head.php");
 
 if ($confirm=="y") {
-  $error="";
   while (list($key,$val)=each($d)) {
-    $mail->delete($val);
-    $error.=$err->errstr()."<br />"; 
+    // Validate that this email is owned by me...
+    if (!($email = $mail->is_it_my_mail($val))) {
+      continue;
+    }
+
+    if ($mail->delete($val)) {
+        if ($db->f("islocal")) {
+            $msg->raise("INFO", "mail", _("The email %s has been marked for deletion"), $email);
+        } else {
+            $msg->raise("INFO", "mail", _("The email %s has been successfully deleted"), $email);
+        }
+    }
   }
   include("mail_list.php");
   exit();
@@ -56,22 +66,23 @@ if ($confirm=="y") {
 <br />
 <p><?php __("Please confirm the deletion of the following mail accounts:"); ?></p>
 <form method="post" action="mail_del.php" id="main">
+  <?php csrf_get(); ?>
 <p>
 <input type="hidden" name="confirm" value="y" />
-<input type="hidden" name="domain_id" value="<?php echo $domain_id; ?>" />
+<input type="hidden" name="domain_id" value="<?php ehe($domain_id); ?>" />
 
+<ul>
 <?php
-
 while (list($key,$val)=each($d)) {
   $m=$mail->get_details($val);
-  echo "<input type=\"hidden\" name=\"d[]\" value=\"$val\" />";
-  echo $m["address"]."@".$m["domain"]."<br />";
+  echo "<input type=\"hidden\" name=\"d[]\" value=\"".ehe($val,false)."\" />";
+  echo "<li><b>".$m["address"]."@".$m["domain"]."</b></li>";
 }
-
 ?>
+</ul>
 </p>
 <p>
-<input type="submit" class="inb" name="submit" value="<?php __("Confirm the deletion"); ?>" /> - <input type="button" name="cancel" id="cancel" onclick="window.history.go(-1);" class="inb" value="<?php __("Don't delete anything and go back to the email list"); ?>"/>
+<input type="submit" class="inb" name="submit" value="<?php __("Confirm the deletion"); ?>" /> &nbsp; <input type="button" name="cancel" id="cancel" onclick="window.history.go(-1);" class="inb" value="<?php __("Don't delete anything and go back to the email list"); ?>"/>
 </p>
 
 <p class="warningmsg">

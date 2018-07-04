@@ -1,10 +1,6 @@
 <?php
 /*
 ----------------------------------------------------------------------
-AlternC - Web Hosting System
-Copyright (C) 2000-2012 by the AlternC Development Team.
-https://alternc.org/
-----------------------------------------------------------------------
 LICENSE
 
 This program is free software; you can redistribute it and/or
@@ -19,15 +15,21 @@ GNU General Public License for more details.
 
 To read the license please visit http://www.gnu.org/copyleft/gpl.html
 ----------------------------------------------------------------------
-Purpose of file: Show a form to edit a member
-----------------------------------------------------------------------
 */
+
+/**
+ * Show a form to send a mail to another account's owner
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 
 include("head.php");
 
 if (!$admin->enabled) {
-    __("This page is restricted to authorized staff");
+    $msg->raise("ERROR", "admin", _("This page is restricted to authorized staff"));
+    echo $msg->msg_html_all();
     exit();
 }
 
@@ -44,20 +46,17 @@ getFields($fields);
 <?php
 
 if ( !empty($submit) ) {
-  if ($admin->mail_all_members($subject,$message,$from)) {
-    $error=_("The email was successfully sent");
+  if ($admin->mailallmembers($subject,$message,$from)) {
+    $msg->raise("INFO", "admin", _("The email was successfully sent"));
   } else {
-    $error=_("There was an error");
+    $msg->raise("INFO", "admin", _("There was an error"));
   }
 }
 
-if (isset($error) && $error) {
-        echo "<p class=\"alert alert-danger\">$error</p>";
-}
-
+echo $msg->msg_html_all();
 ?>
 <form method="post" action="adm_email.php">
-
+  <?php csrf_get(); ?>
 <table cellspacing="1" cellpadding="4" border="0" align="center" class='tedit'>
 	<tr>
 	  <th align="right"><b><?php __("From");?></b></th>

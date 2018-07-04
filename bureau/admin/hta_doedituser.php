@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: hta_doedituser.php,v 1.4 2006/01/12 01:10:48 anarcat Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,42 +15,36 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Franck Missoum
- Purpose of file: Change a username / password from a protected folder
- ----------------------------------------------------------------------
 */
+
+/** 
+ * Change the login / password of a protected folder
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 include_once("head.php");
 
 $fields = array (
-	"user"         => array ("request", "string", ""),
-	"dir"          => array ("request", "string", ""),
-	"newpass"      => array ("request", "string", ""),
-	"newpassconf"  => array ("request", "string", ""),
+	"user"         => array ("post", "string", ""),
+	"dir"          => array ("post", "string", ""),
+	"newpass"      => array ("post", "string", ""),
+	"newpassconf"  => array ("post", "string", ""),
 );
 getFields($fields);
 
 if ($newpass != $newpassconf) {
-	$error = _("Passwords do not match");
+	$msg->raise("ERROR", "hta", _("Passwords do not match"));
 	include("hta_edituser.php");
 	exit();
 }
 
-if (!$hta->change_pass($user,$newpass,$dir)) {
-		$error=$err->errstr();
+if ($hta->change_pass($user,$newpass,$dir)) {
+	$msg->raise("INFO", "hta", _("The password of the user %s has been successfully changed"), $user);
+	$is_include=true;
+	include_once("hta_edit.php");
+} else {
+	include("hta_edituser.php");
 }
-
 ?>
-<h3><?php printf(_("Change the user %s in the protected folder %s"),$user,$dir); ?></h3>
-<hr id="topbar"/>
-<br />
-<?php
-	if (isset($error) && $error) {
-		echo "<p class=\"alert alert-danger\">$error</p>";
-	}
-	else {
-		echo "<p>".sprintf(_("The password of the user %s has been successfully changed"),$user)."</p>";
-	}
-	echo "<p><span class=\"ina\"><a href=\"hta_edit.php?dir=$dir\">"._("Click here to continue")."</a></span></p>";
-?>
-<?php include_once("foot.php"); ?>

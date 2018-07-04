@@ -1,9 +1,6 @@
 <?php
+
 /*
-  ----------------------------------------------------------------------
-  AlternC - Web Hosting System
-  Copyright (C) 2000-2012 by the AlternC Development Team.
-  https://alternc.org/
   ----------------------------------------------------------------------
   LICENSE
 
@@ -19,157 +16,128 @@
 
   To read the license please visit http://www.gnu.org/copyleft/gpl.html
   ----------------------------------------------------------------------
-  Purpose of file: Manage hook system.
-  ----------------------------------------------------------------------
 */
 
 /**
- * This class manage menu.
+ * This class manage the left menu of AlternC
  * 
- * @copyright    AlternC-Team 2002-2005 http://alternc.org/
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/
  */
 class m_menu {
 
-  /*---------------------------------------------------------------------------*/
-  /** Constructor
-  * menu([$mid]) Constructeur de la classe menu, ne fait rien pour le moment
-  */
-  function m_menu() {
-  }
+    /**
+     * get all menus to display, 
+     * uses hooks
+     */
+    function getmenu() {
+        global $hooks, $quota, $mem;
 
-  function getmenu() {
-    global $hooks, $quota, $mem;
+        // Force rebuilding quota, in case of add or edit of the quota and cache not up-to-date
+        $mesq = $quota->getquota("", true); // rebuild quota
+        // Get menu objects
+        $lsto = $hooks->invoke('hook_menu');
 
-    // Force rebuilding quota, in case of add or edit of the quota and cache not up-to-date
-    $mesq = $quota->getquota("",true); // rebuild quota
+        // Get system menu
+        $sm = $this->system_menu();
 
-    // Get menu objects
-    $lsto = $hooks->invoke('hook_menu');
+        // Merge it !
+        $lst = array_merge($sm, $lsto);
 
-    // Get system menu
-    $sm = $this->system_menu();
+        // Sort it
+        uasort($lst, 'm_menu::order_menu');
 
-    // Merge it !
-    $lst = array_merge($sm,$lsto);
+        // Get user specific menu visibility options
+        $mop = $mem->session_tempo_params_get('menu_toggle');
 
-    // Sort it
-    uasort($lst, 'm_menu::order_menu');
+        foreach ($lst as $k => $v) {
 
-    // Get user specific menu visibility options
-    $mop = $mem->session_tempo_params_get('menu_toggle') ;
+            if (empty($v)) {
+                unset($lst[$k]);
+                continue;
+            }
 
-    foreach( $lst as $k => $v ) {
+            // Set the javascript toggle link for menu asking for it
+            if ($v['link'] == 'toggle') {
+                $lst[$k]['link'] = 'javascript:menu_toggle(\'menu-' . $k . '\');';
+            }
 
-      if (empty($v)) {
-        unset($lst[$k]);  
-        continue;
-      }
+            // Be sure that the default visibility is true
+            if (!isset($lst[$k]['visibility'])) {
+                $lst[$k]['visibility'] = true;
+            }
 
-      // Set the javascript toggle link for menu asking for it
-      if ($v['link'] == 'toggle') {
-        $lst[$k]['link'] = 'javascript:menu_toggle(\'menu-'.$k.'\');';
-      }
+            // Set the user's specific visibility option
+            if (isset($mop["menu-$k"])) {
+                if ($mop["menu-$k"] == "hidden") {
+                    $lst[$k]['visibility'] = false;
+                }
+                if ($mop["menu-$k"] == "visible") {
+                    $lst[$k]['visibility'] = true;
+                }
+            }
 
-      // Be sure that the default visibility is true
-      if (! isset($lst[$k]['visibility'])) $lst[$k]['visibility'] = true;
+            if (isset($mesq[$k])) { // if there are some quota for this class
+                // Hide the menu if there are none and not allowed to create
+                if ($mesq[$k]['t'] < 1 && $mesq[$k]['u'] < 1) {
+                    unset($lst[$k]);
+                    continue;
+                }
 
-      // Set the user's specific visibility option
-      if (isset($mop["menu-$k"])) {
-        if ($mop["menu-$k"] == "hidden") $lst[$k]['visibility'] = false;
-        if ($mop["menu-$k"] == "visible") $lst[$k]['visibility'] = true;
-      }
-
-      if ( isset($mesq[$k])) { // if there are some quota for this class
-        // Hide the menu if there are none and not allowed to create
-        if ( $mesq[$k]['t'] < 1 && $mesq[$k]['u'] < 1 ) {
-          unset($lst[$k]);
-          continue;
+                // Set the quota in the menu object
+                $lst[$k]['quota_used'] = $mesq[$k]['u'];
+                $lst[$k]['quota_total'] = $mesq[$k]['t'];
+            } // end if there are some quota for this class
         }
 
-        // Set the quota in the menu object
-        $lst[$k]['quota_used'] = $mesq[$k]['u'] ;
-        $lst[$k]['quota_total'] = $mesq[$k]['t'] ;
-
-      } // end if there are some quota for this class
-     
+        return $lst;
     }
 
-    return $lst;
-  } //getmenu
+    /** 
+     * utilitary function used by usort() to order menus
+     */
+    function order_menu($a, $b) {
+        return $a['pos'] > $b['pos'];
+    }
 
-  function order_menu($a, $b) {
-    // Use to order the menu with a usort
-    return $a['pos'] > $b['pos'];
-  }
+    /**
+     * some menus that don't have an attached class
+     */
+    function system_menu() {
+        global $help_baseurl, $lang_translation, $locales;
 
-  function system_menu() {
-    // Here some needed menu who don't have a class
-    global $help_baseurl, $lang_translation, $locales; 
+        $m = array(
+            'home' =>
+            array(
+                'title' => _("Home / Information"),
+                'link' => 'main.php',
+                'pos' => 0,
+            ),
+            'logout' =>
+            array(
+                'title' => _("Logout"),
+                'link' => 'mem_logout.php',
+                'pos' => 170,
+            ),
+            'help' =>
+            array(
+                'title' => _("Online help"),
+                'target' => 'help',
+                'link' => $help_baseurl,
+                'pos' => 140,
+            ),
+            'lang' =>
+            array(
+                'title' => _("Languages"),
+                'visibility' => false,
+                'link' => 'toggle',
+                'links' => array(),
+                'pos' => 150,
+            )
+        );
+        foreach ($locales as $l) {
+            $m['lang']['links'][] = array('txt' => (isset($lang_translation[$l])) ? $lang_translation[$l] : $l, 'url' => "/login.php?setlang=$l");
+        }
+        return $m;
+    }
 
-    $m =
-      array(
-        'home' =>
-          array(
-            'title'       => _("Home / Information"),
-            'ico'         => 'images/home.png',
-            'link'        => 'main.php',
-            'pos'         => 0,
-          ),
-        'logout' =>
-          array(
-            'title'       => _("Logout"),
-            'ico'         => 'images/exit.png',
-            'link'        => 'mem_logout.php',
-            'pos'         => 170,
-          ),
-        'help' =>
-          array(
-            'title'       => _("Online help"),
-            'ico'         => 'images/help.png',
-            'target'      => 'help',
-            'link'        => $help_baseurl,
-            'pos'         => 140,
-          ),
-        'lang' =>
-          array(
-            'title'       => _("Languages"),
-            'ico'         => '/images/lang.png',
-            'visibility'  => false,
-            'link'        => 'toggle',
-            'links'	  => array(),
-            'pos'         => 150,
-         )
-      ) ;
-    foreach($locales as $l) { 
-     $m['lang']['links'][] = array ( 'txt' => (isset($lang_translation[$l]))?$lang_translation[$l]:$l, 'url' => "/login.php?setlang=$l");
-    } 
-    return $m;
-
-
-/*
-
-<div class="menu-box">
-  <a href="javascript:menu_toggle('menu-lang');">
-   <div class="menu-title">
-    <img src="/images/lang.png" alt="<?php __("Languages"); ?>" />&nbsp;<?php __("Languages"); ?>
-    <img src="/images/menu_moins.png" alt="" style="float:right;" id="menu-lang-img"/>
-   </div> 
-  </a>    
-  <div class="menu-content" id="menu-lang">
-  <ul>
-   <?php foreach($locales as $l) { ?>
-    <li><a href="/login.php?setlang=<?php echo $l; ?>" target="_top"><?php if (isset($lang_translation[$l])) echo $lang_translation[$l]; else echo $l; ?></a></li>
-   <?php } ?>
-  </ul>
- </div> 
-</div>
-
-
-
-
-
-*/
-  } //system_menu
-
-} /* Class menu */
-
+} /* Class m_menu */

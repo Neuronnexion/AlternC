@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: adm_tlddoadd.php,v 1.1.1.1 2003/03/26 17:41:29 root Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,30 +15,35 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Benjamin Sonntag
- Purpose of file: Manage allowed TLD on the server
- ----------------------------------------------------------------------
 */
+
+/**
+ * Manages allowed TLDs on the server
+ * soon deprecated
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 
 if (!$admin->enabled) {
-	__("This page is restricted to authorized staff");
+	$msg->raise("ERROR", "admin", _("This page is restricted to authorized staff"));
+	echo $msg->msg_html_all();
 	exit();
 }
 
 $fields = array (
-        "tld"    => array ("request", "string", ""),
-        "mode"   => array ("request", "integer", ""),
+        "tld"    => array ("post", "string", ""),
+        "mode"   => array ("post", "integer", ""),
 );
 getFields($fields);
 
 
 if (!$admin->addtld($tld,$mode)) {
-	$error=$err->errstr();
 	include("adm_tldadd.php");
 	exit();
 } else {
-	$error=_("The TLD has been successfully added");
+	$msg->raise("INFO", "admin", _("The TLD has been successfully added"));
 	include("adm_tld.php");
 	exit();
 }

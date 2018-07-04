@@ -1,15 +1,5 @@
 <?php
 /*
- $Id: adm_dorenew.php,v 1.6 2006/01/24 05:03:30 joe Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2006 Le réseau Koumbit Inc.
- http://koumbit.org/
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -25,13 +15,19 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Purpose of file: Renew an account for the specified period
- ----------------------------------------------------------------------
 */
+
+/**
+ * Renew an account's access for a specific period
+ *
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 
 if (!$admin->enabled) {
-  __("This page is restricted to authorized staff");
+  $msg->raise("ERROR", "admin", _("This page is restricted to authorized staff"));
+  echo $msg->msg_html_all();
   exit();
 }
 
@@ -42,15 +38,15 @@ $fields = array (
 getFields($fields);
 
 if (!$admin->checkcreator($uid)) {
-  __("This page is restricted to authorized staff");
+  $msg->raise("ERROR", "admin", _("This page is restricted to authorized staff"));
+  echo $msg->msg_html_all();
   exit();
 }
 
 if (!$admin->renew_mem($uid, $periods)){
-  $error=$err->errstr();
   include("adm_edit.php");
 } else {
-  $error=_("The member has been successfully renewed");
+  $msg->raise("INFO", "admin", _("The member has been successfully renewed"));
   include("adm_list.php");
 }
 ?>

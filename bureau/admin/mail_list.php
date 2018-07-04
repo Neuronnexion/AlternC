@@ -1,10 +1,6 @@
 <?php
 /*
  ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2000-2012 by the AlternC Development Team.
- https://alternc.org/
- ----------------------------------------------------------------------
  LICENSE
 
  This program is free software; you can redistribute it and/or
@@ -19,9 +15,13 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Purpose of file: listing of mail accounts for one domain.
- ----------------------------------------------------------------------
 */
+
+/**
+ * List the email account of a domain 
+ *
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/
+ */
 
 require_once("../class/config.php");
 include_once("head.php");
@@ -44,23 +44,10 @@ if(!$domain_id ) {
   exit();
 }
 
-$fatal=false;
-
 if ($domain=$dom->get_domain_byid($domain_id)) {
-  if(!($mails_list = $mail->enum_domain_mails($domain_id,$search,$offset,$count,$show_systemmails)) && $search) {
-    $error=$err->errstr();
-  }
+  $mails_list = $mail->enum_domain_mails($domain_id,$search,$offset,$count,$show_systemmails);
   $allmails_list = $mail->enum_domain_mails($domain_id,$search,$offset,$count,'true');
-} else {
-  $error=$err->errstr();
-  $fatal=true;
 }
-
-if ($fatal) {
-  echo "<div class=\"alert alert-danger\">$error</div>";
-} else {
-
-  if (isset($error) && !empty($error)) { echo "<p class='alert alert-danger'>$error</p>"; }
 ?>
 
 <table>
@@ -70,21 +57,25 @@ if ($fatal) {
   echo '<h3>'._("Create a new mail account")."</h3>";
 } else {
   echo '<h3>'._("Manage Catch-all")."</h3>";
-} ?>
+}
+
+echo $msg->msg_html_all(true, true);
+?>
     </td>
   </tr>
   <tr>
     <td>
 <?php if ($quota->cancreate("mail")) { ?>
     <form method="post" action="mail_doadd.php" id="main" name="mail_create">
-      <input type="text" class="int intleft" style="text-align: right" name="mail_arg" value="<?php ehe($mail_arg); ?>" size="32" id="mail_arg" maxlength="255" /><span id="emaildom" class="int intright"><?php echo "@".$domain; ?></span>
-      <input type="hidden" name="domain_id"  value="<?php echo $domain_id;?>" />
+    <?php csrf_get(); ?>
+      <input type="text" class="int intleft" style="text-align: right" name="mail_arg" value="<?php ehe($mail_arg); ?>" size="24" id="mail_arg" maxlength="255" /><span id="emaildom" class="int intright"><?php echo "@".$domain; ?></span>
+      <input type="hidden" name="domain_id"  value="<?php ehe($domain_id); ?>" />
       <input type="submit" name="submit" class="inb add" value="<?php __("Create this email address"); ?>"  onClick="return false_if_empty('mail_arg', '<?php echo addslashes(_("Can't have empty mail."));?>');" />
     </form>
 <?php } // $quota->cancreate("mail") ?>
     </td>
     <td>
-      <span class="inb configure" valign='bottom'><a href="mail_manage_catchall.php?domain_id=<?php echo $domain_id?>"><?php __("Manage Catch-all for this domain");?></a></span> 
+      <span class="inb settings" valign='bottom'><a href="mail_manage_catchall.php?domain_id=<?php echo $domain_id?>"><?php __("Manage Catch-all for this domain");?></a></span> 
     </td>
   </tr>
 </table>
@@ -94,35 +85,35 @@ if ($fatal) {
 <h3><?php printf(_("Email addresses of the domain %s"),$domain); ?> : </h3>
 <?php
 if (empty($allmails_list) && empty($search)) {
-  echo "<p><i>";
-  __("No mails for this domain.");
-  echo "</i></p><br/>";
+  $msg->raise("ERROR", 'mail', _("No mails for this domain."));
+  echo $msg->msg_html_all();
 } else {
 
 ?>
 
 <table class="searchtable"><tr><td>
 <form method="get" name="formlist1" id="formlist1" action="mail_list.php">
-<input type="hidden" name="domain_id" value="<?php echo $domain_id; ?>" />
+<input type="hidden" name="domain_id" value="<?php ehe($domain_id); ?>" />
 <input type="hidden" name="offset" value="0" />
 <span class="int intleft"><img alt="<?php __("Search"); ?>" title="<?php __("Search"); ?>" src="/images/search.png" style="vertical-align: middle"/> </span><input type="text" name="search" value="<?php ehe($search); ?>" size="20" maxlength="64" class="int intright" />
 </td><td>
 <?php pager($offset,$count,$mail->total,"mail_list.php?domain_id=".$domain_id."&amp;count=".$count."&amp;search=".urlencode($search)."&amp;offset=%%offset%%"); ?>
 </td>
 <td style="text-align:center">
-  <input type="checkbox" id="show_systemmails" name="show_systemmails" <?php if($show_systemmails) {echo "checked";}?> value="1"onclick="document.getElementById('formlist1').submit();" /><label for="show_systemmails" ><?php __("Show system emails");?></label>
+  <input type="checkbox" id="show_systemmails" name="show_systemmails" <?php if($show_systemmails) { echo "checked"; } ?> value="1" onclick="document.getElementById('formlist1').submit();" /><label for="show_systemmails" ><?php __("Show system emails");?></label>
 </td>
 </form>
 <td style="text-align:right">
 <form method="get" name="formlist2" id="formlist2" action="mail_list.php">
- <input type="hidden" name="domain_id" value="<?php echo $domain_id; ?>" />
+ <input type="hidden" name="domain_id" value="<?php ehe($domain_id); ?>" />
  <input type="hidden" name="offset" value="0" />
  <?php __("Items per page:"); ?> <select name="count" class="inl" onchange="submit()"><?php eoption($counts,$count); ?></select>
 </form>
 </td></tr></table>
 
 <form method="post" action="mail_del.php">
- <input type="hidden" name="domain_id" value="<?php echo $domain_id; ?>" />
+   <?php csrf_get(); ?>
+ <input type="hidden" name="domain_id" value="<?php ehe($domain_id); ?>" />
 <table class="tlist">
 <tr><th></th><th></th><th><?php __("Enabled");?></th><th style="text-align:right"><?php __("Address"); ?></th><th><?php __("Pop/Imap"); ?></th><th><?php __("Other recipients"); ?></th><th><?php __("Last login time"); ?></th></tr>
 <?php
@@ -146,7 +137,7 @@ if(!empty($mails_list)) {
 	    <td><img src="images/check_no.png" alt="<?php __("Disabled"); ?>" /></td>	  
 	  <?php } else if (!$val["type"]) { ?>
           <td align="center">
-	    <input class="inc" type="checkbox" id="del_<?php echo $i; ?>" name="d[]" value="<?php ehe($val["id"]); ?>" />
+	    <input class="inc" type="checkbox" id="del_<?php ehe($i); ?>" name="d[]" value="<?php ehe($val["id"]); ?>" />
 	</td>
 	<td class="<?php echo $grey; ?>">
 	  <div class="ina edit"><a href="mail_edit.php?mail_id=<?php echo $val["id"] ?>"><?php __("Edit"); ?></a></div></td>
@@ -181,7 +172,7 @@ if (date("Y-m-d")==substr($val["lastlogin"],0,10)) echo substr($val["lastlogin"]
 </form>
 
 <?php
-    } } // end if no mail for this domain
+    } // end if no mail for this domain
 ?>
 <hr/>
 
@@ -202,11 +193,11 @@ if (date("Y-m-d")==substr($val["lastlogin"],0,10)) echo substr($val["lastlogin"]
 
     <?php __("Which protocol shall you use?"); ?>
     <div id="accordion-mailout">
-      <?php if ($mail->srv_submission) { ?>
+      <?php if ($mail->srv_postfix) { ?>
       <h4><?php __("Submission");?></h4>
       <div>
         <ul>
-        <li><b><?php __("Server name: ");?></b> <?php __($mail->srv_submission); ?></li>
+        <li><b><?php __("Server name: ");?></b> <?php __($mail->srv_postfix); ?></li>
         <li><b><?php __("Username: ");?></b> <?php __("The mail address you want to access <i>(example : myuser@example.tld)</i>");?></li>
         <li><b><?php __("Port: ");?></b> 587</li>
         <li><b><?php __("Authentication: ");?></b><?php __("Yes")?></li>
@@ -215,11 +206,11 @@ if (date("Y-m-d")==substr($val["lastlogin"],0,10)) echo substr($val["lastlogin"]
         </ul>
       </div>
       <?php } ?>
-      <?php if ($mail->srv_smtp) { ?>
+      <?php if ($mail->srv_postfix) { ?>
       <h4><?php __("SMTP");?></h4>
       <div>
         <ul>
-          <li><b><?php __("Server name: ");?></b> <?php __($mail->srv_smtp); ?></li>
+          <li><b><?php __("Server name: ");?></b> <?php __($mail->srv_postfix); ?></li>
           <li><b><?php __("Username: ");?></b> <?php __("The mail address you want to access <i>(example : myuser@example.tld)</i>");?></li>
           <li><b><?php __("Port: ");?></b> 25</li>
           <li><b><?php __("Authentication: ");?></b><?php __("Yes")?></li>
@@ -228,11 +219,11 @@ if (date("Y-m-d")==substr($val["lastlogin"],0,10)) echo substr($val["lastlogin"]
         </ul>
       </div>
       <?php } ?>
-      <?php if ($mail->srv_smtps) { ?>
+      <?php if ($mail->srv_postfix) { ?>
       <h4><?php __("SMTPS");?></h4>
       <div>
         <ul>
-          <li><b><?php __("Server name: ");?></b> <?php __($mail->srv_smtps); ?></li>
+          <li><b><?php __("Server name: ");?></b> <?php __($mail->srv_postfix); ?></li>
           <li><b><?php __("Username: ");?></b> <?php __("The mail address you want to access <i>(example : myuser@example.tld)</i>");?></li>
           <li><b><?php __("Port: ");?></b> 465</li>
           <li><b><?php __("Authentication: ");?></b><?php __("Yes")?></li>
@@ -253,7 +244,7 @@ if (date("Y-m-d")==substr($val["lastlogin"],0,10)) echo substr($val["lastlogin"]
       <h4><?php __("IMAP");?></h4>
       <div>
         <ul>
-          <li><b><?php __("Server name: ");?></b> <?php __($mail->srv_imap); ?></li>
+          <li><b><?php __("Server name: ");?></b> <?php __($mail->srv_dovecot); ?></li>
           <li><b><?php __("Port: ");?></b> 143</li>
           <li><b><?php __("Authentication: ");?></b><?php __("Yes")?></li>
           <li><b><?php __("Authentication method: ");?></b><?php __("Normal password")?></li>
@@ -264,7 +255,7 @@ if (date("Y-m-d")==substr($val["lastlogin"],0,10)) echo substr($val["lastlogin"]
       <h4><?php __("IMAPS");?></h4>
       <div>
         <ul>
-          <li><b><?php __("Server name: ");?></b> <?php __($mail->srv_imaps); ?></li>
+          <li><b><?php __("Server name: ");?></b> <?php __($mail->srv_dovecot); ?></li>
           <li><b><?php __("Port: ");?></b> 993</li>
           <li><b><?php __("Authentication: ");?></b><?php __("Yes")?></li>
           <li><b><?php __("Authentication method: ")?></b><?php __("Normal password")?></li>
@@ -275,7 +266,7 @@ if (date("Y-m-d")==substr($val["lastlogin"],0,10)) echo substr($val["lastlogin"]
       <h4><?php __("POP3");?></h4>
       <div>
         <ul>
-          <li><b><?php __("Server name: ");?></b> <?php __($mail->srv_pop3); ?></li>
+          <li><b><?php __("Server name: ");?></b> <?php __($mail->srv_dovecot); ?></li>
           <li><b><?php __("Port: ");?></b> 110</li>
           <li><b><?php __("Authentication: ");?></b><?php __("Yes")?></li>
           <li><b><?php __("Authentication method: ");?></b><?php __("Normal password")?></li>
@@ -286,7 +277,7 @@ if (date("Y-m-d")==substr($val["lastlogin"],0,10)) echo substr($val["lastlogin"]
       <h4><?php __("POP3S");?></h4>
       <div>
         <ul>
-          <li><b><?php __("Server name: ");?></b> <?php __($mail->srv_pop3s); ?></li>
+          <li><b><?php __("Server name: ");?></b> <?php __($mail->srv_dovecot); ?></li>
           <li><b><?php __("Port: ");?></b> 995</li>
           <li><b><?php __("Authentication: ");?></b><?php __("Yes")?></li>
           <li><b><?php __("Authentication method: ");?></b><?php __("Normal password")?></li>
@@ -297,7 +288,6 @@ if (date("Y-m-d")==substr($val["lastlogin"],0,10)) echo substr($val["lastlogin"]
     </div>
 </div><!-- tabs-mailhelp-in -->
 </div><!-- tabs-mailhelp -->
-
 
 <script type="text/javascript">
 

@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: adm_panel.php,v 1.9 2005/08/01 18:25:52 anarcat Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,14 +15,19 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Benjamin Sonntag
- Purpose of file: Panneau de control de l'administrateur
- ----------------------------------------------------------------------
 */
+
+/**
+ * Administrator misc. settings
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 
 if (!$admin->enabled) {
-	__("This page is restricted to authorized staff");
+	$msg->raise("ERROR", "admin", _("This page is restricted to authorized staff"));
+	echo $msg->msg_html_all();
 	exit();
 }
 
@@ -41,11 +38,7 @@ include_once("head.php");
 <hr id="topbar"/>
 <br />
 <?php
-if (isset($error) && $error) {
-	echo "<p class=\"alert alert-danger\">$error</p>";
-	include_once("foot.php");
-	exit;
-}
+echo $msg->msg_html_all();
 ?>
 <ul id="adm_panel">
  <li class="lst"><a href="adm_tld.php"><?php __("Manage allowed domains (TLD)"); ?></a></li>

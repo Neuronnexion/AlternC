@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: adm_mxacount.php,v 1.2 2006/02/17 18:57:02 olivier Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,49 +15,58 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Benjamin Sonntag
- Purpose of file: Manage list of allowed accounts for secondary mx
- ----------------------------------------------------------------------
 */
+
+/**
+ * Manage the list of allowed accounts to operate as secondary MX
+ * those account are allowed to list the hosted domains
+ * to configure their postfix as a secondary MX
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 
 if (!$admin->enabled) {
-	__("This page is restricted to authorized staff");
+	$msg->raise("ERROR", "admin", _("This page is restricted to authorized staff"));
+	echo $msg->msg_html_all();
 	exit();
 }
 
 $fields = array (
 	"delaccount"   => array ("request", "string", ""),
-	"newlogin"   => array ("request", "string", ""),
-	"newpass"    => array ("request", "string", ""),
+	"newlogin"   => array ("post", "string", ""),
+	"newpass"    => array ("post", "string", ""),
 );
 getFields($fields);
 
 if ($delaccount) {
 	// Delete an account
 	if ($mail->del_slave_account($delaccount)) {
-		$error=_("The requested account has been deleted. It is now denied.");
+		$msg->raise("INFO", "admin", _("The requested account has been deleted. It is now denied."));
 	}
 }
 if ($newlogin) {
 	// Add an account
 	if ($mail->add_slave_account($newlogin,$newpass)) { 
-		$error=_("The requested account address has been created. It is now allowed.");
+		$msg->raise("INFO", "admin", _("The requested account address has been created. It is now allowed."));
 		$newlogin='';$newpass='';
 	}
 }
 
 include_once("head.php");
+
+$c=$admin->listPasswordPolicies();
+$passwd_classcount = $c['adm']['classcount'];
+
 ?>
 <h3><?php __("Manage allowed accounts for secondary mx"); ?></h3>
 <hr id="topbar"/>
 <br />
 <?php
-	if (isset($error) && $error) {
-	  echo "<p class=\"alert alert-danger\">$error</p>";
-	}
-
 $c=$mail->enum_slave_account();
+
+echo $msg->msg_html_all();
 
 if (is_array($c)) {
 
@@ -90,12 +91,17 @@ for($i=0;$i<count($c);$i++) { ?>
 </table>
     <?php } ?>
 <p><?php __("If you want to allow a new server to access your mx-hosted domain list, give him an account."); ?></p>
-<form method="post" action="adm_mxaccount.php" name="main" id="main">
+<form method="post" action="adm_mxaccount.php" name="main" id="main" autocomplete="off">
+  <?php csrf_get(); ?>
+<!-- honeypot fields -->
+<input type="text" style="display: none" id="fakeUsername" name="fakeUsername" value="" />
+<input type="password" style="display: none" id="fakePassword" name="fakePassword" value="" />
+
 <table class="tedit">
 <tr><th><label for="newlogin"><?php __("Login"); ?></label></th><th><label for="newpass"><?php __("Password"); ?></label></th></tr>
 <tr>
 	<td><input type="text" class="int" value="<?php ehe($newlogin); ?>" id="newlogin" name="newlogin" maxlength="64" size="32" /><br/><br/></td>
-	<td><input type="password" class="int" value="<?php ehe($newpass); ?>" id="newpass" name="newpass" maxlength="64" size="32" /><?php display_div_generate_password(DEFAULT_PASS_SIZE,"#newpass"); ?></td>
+	<td><input type="password" class="int" autocomplete="off" value="<?php ehe($newpass); ?>" id="newpass" name="newpass" maxlength="64" size="32" /><?php display_div_generate_password(DEFAULT_PASS_SIZE,"#newpass","",$passwd_classcount); ?></td>
 </tr>
 <tr class="trbtn"><td colspan="2">
 	<input type="submit" value="<?php __("Add this account to the allowed list"); ?>" class="inb" />
@@ -106,6 +112,5 @@ for($i=0;$i<count($c);$i++) { ?>
 
 <script type="text/javascript">
 document.forms['main'].newlogin.focus();
-document.forms['main'].setAttribute('autocomplete', 'off');
 </script>
 <?php include_once("foot.php"); ?>

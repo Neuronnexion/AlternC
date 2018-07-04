@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: sql_bck.php,v 1.8 2003/10/09 00:54:58 root Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,15 +15,19 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Benjamin Sonntag
- Purpose of file: Manage the MySQL Backup
- ----------------------------------------------------------------------
 */
+
+/** 
+ * Form to manage MySQL database backup for an account
+ *
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/
+ */
+
 require_once("../class/config.php");
 include_once("head.php");
 
 ?>
-<h3><?php __("MySQL Databases - Configure backups"); ?></h3>
+<h3 class="backup"><?php __("MySQL Databases - Configure backups"); ?></h3>
 <hr id="topbar"/>
 <br />
 <?php
@@ -44,32 +40,29 @@ if ( ! variable_get('sql_allow_users_backups') ) {
 
 $fields = array (
 	"id"     => array ("request", "string", ""),
-	"bck_mode" => array ("request", "integer", 0),
-	"bck_history" => array ("request", "integer", 7),
-	"bck_gzip" => array ("request", "integer", 0),
-	"bck_dir" => array ("request", "string", "/"),
+	"bck_mode" => array ("post", "integer", 0),
+	"bck_history" => array ("post", "integer", 7),
+	"bck_gzip" => array ("post", "integer", 0),
+	"bck_dir" => array ("post", "string", "/"),
 	
 );
 getFields($fields);
 
-if (!$r=$mysql->get_mysql_details($id)) {
-	$error=$err->errstr();
-}
+$r=$mysql->get_mysql_details($id); 
 
-if (isset($error) && $error) {
-	echo "<p class=\"alert alert-danger\">$error</p><p>&nbsp;</p>";
-}
+echo $msg->msg_html_all();
 
 if (is_array($r)) {
 ?>
 <h3><?php printf(_("Manage the SQL backup for database %s"),$r["db"]); ?></h3>
 
 <form action="sql_dobck.php" method="post" id="main" name="main">
+ <?php csrf_get(); ?>
 <table class="tedit">
 <tr>
 	<th><label><?php __("Do MySQL backup?"); ?></label></th>
 	<td>
-        <input type="hidden" name="id" value="<?php echo $id; ?>" />
+        <input type="hidden" name="id" value="<?php ehe($id); ?>" />
         <input type="radio" class="inc" id="bck_mode0" name="bck_mode" value="0"<?php cbox($r["bck"]==0); ?>/><label for="bck_mode0"><?php __("No backup"); ?></label><br />
 	<input type="radio" class="inc" id="bck_mode1" name="bck_mode" value="1"<?php cbox($r["bck"]==1); ?>/><label for="bck_mode1"><?php __("Weekly backup"); ?></label><br />
 	<input type="radio" class="inc" id="bck_mode2" name="bck_mode" value="2"<?php cbox($r["bck"]==2); ?>/><label for="bck_mode2"><?php __("Daily backup"); ?></label><br />
@@ -98,8 +91,8 @@ if (is_array($r)) {
 </tr>
 <tr>
 	<th><label for="bck_dir"><?php __("In which folder do you want to store the backups?"); ?></label></th>
-	<td><input type="text" class="int" name="bck_dir" id="bck_dir" size="30" maxlength="255" value="<?php @ehe($r["dir"]); ?>" />
-	<?php display_browser( isset($r["dir"])?$r["dir"]:"" , "main.bck_dir" ); ?>
+	<td><input type="text" class="int" name="bck_dir" id="bck_dir" size="30" maxlength="255" value="<?php ehe($r["dir"]); ?>" />
+	<?php display_browser( isset($r["dir"])?$r["dir"]:"" , "bck_dir" ); ?>
 </td>
 </tr>
 
@@ -111,13 +104,10 @@ if (is_array($r)) {
 </form>
 <?php
 	$mem->show_help("sql_bck");
-	} else {
-  echo "<p>";
-__("You currently have no database defined");
- echo "</p>";
-	}
+} else {
+    echo "<p>";
+    __("You currently have no database defined");
+    echo "</p>";
+}
 ?>
-<script type="text/javascript">
-document.forms['main'].bck_mode.focus();
-</script>
 <?php include_once("foot.php"); ?>

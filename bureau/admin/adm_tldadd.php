@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: adm_tldadd.php,v 1.3 2003/06/10 12:14:09 root Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,14 +15,20 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Benjamin Sonntag
- Purpose of file: Manage allowed TLD on the server
- ----------------------------------------------------------------------
 */
+
+/**
+ * Manage allowed TLDs on the server
+ * soon deprecated
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 
 if (!$admin->enabled) {
-	__("This page is restricted to authorized staff");
+	$msg->raise("ERROR", "admin", _("This page is restricted to authorized staff"));
+	echo $msg->msg_html_all();
 	exit();
 }
 $fields = array (
@@ -47,11 +45,7 @@ include_once ("head.php");
 <hr id="topbar"/>
 <br />
 <?php
-	if (isset($error) && $error) {
-	  echo "<p class=\"alert alert-danger\">$error</p>";
-	}
-
-
+echo $msg->msg_html_all();
 ?>
 <h3><?php __("Add a new TLD"); ?></h3>
 <p>
@@ -60,7 +54,7 @@ include_once ("head.php");
 </p>
 
 <form method="post" action="adm_tlddoadd.php" name="main" id="main">
-
+  <?php csrf_get(); ?>
 <table class="tedit">
 <tr><th><label for="tld"><?php __("TLD"); ?></label></th><td><input type="text" id="tld" name="tld" class="int" value="<?php ehe( (isset($tld)?$tld:'') ); ?>" size="20" maxlength="64" /></td></tr>
 <tr><th><label for="mode"><?php __("Allowed Mode"); ?></label></th><td><select name="mode" id="mode" class="inl">

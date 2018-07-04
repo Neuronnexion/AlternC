@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: login.php,v 1.2 2003/06/10 06:42:25 root Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,24 +15,12 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file:
- Purpose of file:
- ----------------------------------------------------------------------
 */
 
+// When you log in, you are redirected to the main page.
 
 require_once("../class/config.php");
 
-if (!$mem->checkid())
-{
-	$error = $err->errstr();
-	include("index.php");
-	exit();
-}
-
-$mem->resetlast();
-
 header("Location: main.php");
-exit;
 
 ?>

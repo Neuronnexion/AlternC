@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: ftp_edit.php,v 1.5 2006/01/12 01:10:48 anarcat Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,10 +15,14 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Benjamin Sonntag
- Purpose of file: Edit an FTP account
- ----------------------------------------------------------------------
 */
+
+/**
+ * Form to edit an FTP account
+ *
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/ 
+ */
+
 require_once("../class/config.php");
 include_once("head.php");
 
@@ -40,54 +36,57 @@ if ( !isset($is_include) ) {
 }
 
 if (!$id && !$create) {
-  $error=_("Neither a creation nor a edition");
+  $msg->raise("ERROR", "ftp", _("Neither a creation nor a edition"));
   echo "<h3>"._("Create a FTP account")."</h3>";
-  echo "<p class=\"alert alert-danger\">$error</p>";
+  echo $msg->msg_html_all();
   include_once("foot.php");
   exit();
 }
 
 if (!$id && $create) { //creation
   echo "<h3>"._("Create a FTP account")."</h3>";
-  $rr=false;
+  if ( !isset($is_include) )
+    $rr=false;
 } else {
-   echo "<h3>"._("Editing a FTP account")."</h3>";
+  echo "<h3>"._("Editing a FTP account")."</h3>";
   $rr=$ftp->get_ftp_details($id);
-  if (!$rr) {
-    $error=$err->errstr();
-  }
 }
 
+echo $msg->msg_html_all();
+
+$c=$admin->listPasswordPolicies();
+$passwd_classcount = $c['ftp']['classcount'];
+
 ?>
-<?php
-if (isset($error) && $error) {
-	echo "<p class=\"alert alert-danger\">$error</p>";
-}
-?>
-<form method="post" action="ftp_doedit.php" name="main" id="main">
-  <input type="hidden" name="id" value="<?php echo $id ?>" />
-  <input type="hidden" name="create" value="<?php echo $create ?>" />
+<form method="post" action="ftp_doedit.php" name="main" id="main" autocomplete="off">
+<?php csrf_get(); ?>
+<!-- honeypot fields -->
+<input type="text" style="display: none" id="fakeUsername" name="fakeUsername" value="" />
+<input type="password" style="display: none" id="fakePassword" name="fakePassword" value="" />
+
+  <input type="hidden" name="id" value="<?php ehe($id); ?>" />
+  <input type="hidden" name="create" value="<?php ehe($create); ?>" />
   <table border="1" cellspacing="0" cellpadding="4" class="tedit">
     <tr>
       <th><label for="login"><?php __("Username"); ?></label></th>
-      <td><select class="inl" name="prefixe"><?php @$ftp->select_prefix_list($rr[0]["prefixe"]); ?></select>&nbsp;<b>_</b>&nbsp;<input type="text" class="int" name="login" id="login" value="<?php @ehe($rr[0]["login"]); ?>" size="20" maxlength="64" /></td>
+      <td><select class="inl" name="prefixe"><?php $ftp->select_prefix_list($rr[0]["prefixe"]); ?></select>&nbsp;<b>_</b>&nbsp;<input type="text" class="int" name="login" id="login" value="<?php ehe($rr[0]["login"]); ?>" size="20" maxlength="64" /></td>
     </tr>
     <tr>
       <th><label for="dir"><?php __("Folder"); ?></label></th>
       <td>
-        <input type="text" class="int" name="dir" id="dir" value="<?php empty($dir)?@ehe("/".$rr[0]["dir"]):@ehe($dir); ?>" size="20" maxlength="64" />
-				<?php display_browser( empty($dir)?("/".( isset($rr[0]["dir"])?$rr[0]["dir"]:'') ):$dir , "main.dir" ); ?>
-		<p><?php __("This is the root folder for this FTP user. i.e. this FTP user can access to this forlder and all its sub-folders."); ?></p>
+        <input type="text" class="int" name="dir" id="dir" value="<?php empty($dir)?ehe("/".$rr[0]["dir"]):ehe($dir); ?>" size="20" maxlength="64" />
+				<?php display_browser( empty($dir)?("/".( isset($rr[0]["dir"])?$rr[0]["dir"]:'') ):$dir , "dir" ); ?>
+		<p><?php __("This is the root folder for this FTP user. i.e. this FTP user can access to this folder and all its sub-folders."); ?></p>
 		
       </td>
     </tr>
     <tr id='ftp_tr_pass1'>
       <th><label for="pass"><?php __("Password"); ?></label></th>
-      <td><input type="password" class="int" name="pass" id="pass" size="20" maxlength="64" value=""/><?php display_div_generate_password(DEFAULT_PASS_SIZE,"#pass","#passconf"); ?></td>
+      <td><input type="password" class="int" name="pass" autocomplete="off" id="pass" size="20" maxlength="64" value=""/><?php display_div_generate_password(DEFAULT_PASS_SIZE,"#pass","#passconf",$passwd_classcount); ?></td>
     </tr>
     <tr id='ftp_tr_pass2'>
       <th><label for="passconf"><?php __("Confirm password"); ?></label></th>
-      <td><input type="password" class="int" name="passconf" id="passconf" size="20" maxlength="64" value=""/></td>
+      <td><input type="password" class="int" name="passconf" autocomplete="off" id="passconf" size="20" maxlength="64" value=""/></td>
     </tr>
     <tr id='ftp_tr_editpass' style='display: none;'>
       <th><label for="pass"><?php __("Password"); ?></label></th>
@@ -102,7 +101,6 @@ if (isset($error) && $error) {
 
 <script type="text/javascript">
 document.forms['main'].login.focus();
-document.forms['main'].setAttribute('autocomplete', 'off'); 
 
 function ftp_edit_pass_toggle() {
   $('#ftp_tr_pass1').toggle();

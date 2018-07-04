@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: adm_tld.php,v 1.4 2004/11/29 17:27:04 anonymous Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,21 +15,27 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Alan Garcia
- Purpose of file: Manage domain types on the server 
- ----------------------------------------------------------------------
 */
+
+/**
+ * Launch update-domaines.sh crontab through admin account and inotify
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/  
+ */
+
 require_once("../class/config.php");
 
 if (!$admin->enabled) {
   if ( ! ( $isinvited && isset($oldid) && !empty($oldid) && $oldid==2000) ) { // Allow sub admins
-    __("This page is restricted to authorized staff");
+    $msg->raise("ERROR", "admin", _("This page is restricted to authorized staff"));
+    echo $msg->msg_html_all();
     exit();
   }
 }
 
 if (! isset($L_INOTIFY_UPDATE_DOMAIN)) {
-  __("Missing INOTIFY_UPDATE_DOMAIN var in /etc/alternc/local.sh . Fix it!");
+  $msg->raise("ERROR", "admin", _("Missing INOTIFY_UPDATE_DOMAIN var in /etc/alternc/local.sh . Fix it!"));
+  echo $msg->msg_html_all();
   die();
 }
 

@@ -1,13 +1,5 @@
 <?php
 /*
- $Id: mem_admin.php,v 1.2 2003/06/10 08:18:26 root Exp $
- ----------------------------------------------------------------------
- AlternC - Web Hosting System
- Copyright (C) 2002 by the AlternC Development Team.
- http://alternc.org/
- ----------------------------------------------------------------------
- Based on:
- Valentin Lacambre's web hosting softwares: http://altern.org/
  ----------------------------------------------------------------------
  LICENSE
 
@@ -23,21 +15,23 @@
 
  To read the license please visit http://www.gnu.org/copyleft/gpl.html
  ----------------------------------------------------------------------
- Original Author of file: Benjamin Sonntag <benjamin@octopuce.com>
- Purpose of file: Manage administrators preferences
- ----------------------------------------------------------------------
 */
+
+/**
+ * Change the administrator's account preferences
+ * 
+ * @copyright AlternC-Team 2000-2017 https://alternc.com/
+ */
+
 require_once("../class/config.php");
 
 $fields = array (
-	"admlist"    => array ("request", "string", ""),
+	"admlist"    => array ("post", "string", ""),
 );
 getFields($fields);
 
-if (!$mem->adminpref($admlist)) {
-	$error=$err->errstr();
-} else {
-	$error=_("Your administrator preferences has been successfully changed.");
+if ($mem->adminpref($admlist)) {
+	$msg->raise("INFO", "mem", _("Your administrator preferences has been successfully changed."));
 }
 
 include_once("head.php");
@@ -45,8 +39,8 @@ include_once("head.php");
 ?>
 <h3><?php __("Admin preferences"); ?></h3>
 <?php
-	if (isset($error) && $error) {
-		echo "<p class=\"alert alert-danger\">$error</p>";
-	}
+echo $msg->msg_html_all();
+echo "<p><span class='ina'><a href='mem_param.php'>"._("Click here to continue")."</a></span></p>";
+
+include_once("foot.php");
 ?>
-<?php include_once("foot.php"); ?>
